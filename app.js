@@ -2,302 +2,38 @@
 
 'use strict';
 
-const YEET = {
-  config: {
-    refreshInterval: 30000,
-    autoRefresh: true,
-    sessionFiles: [],
-    projects: [],
-    todos: [],
-    bookmarks: [],
-    focus: '',
-    weatherCity: 'Istanbul',
-    userName: 'Yigit'
-  },
-  state: {
-    lastUpdate: null,
-    logs: [],
-    isPaused: false,
-    timerId: null,
-    hostname: 'localhost',
-    platform: 'unknown'
-  }
-};
-
-/* ===== CLOUDFLARE CONFIG ===== */
-const CLOUDFLARE = {
-  token: '',
-  zoneId: 'df5db7732ba13e5e52c7fad73b23de1c'
-};
-
-/* ===== CLOUDFLARE API ===== */
-async function fetchCloudflare(endpoint) {
-  const res = await fetch(`https://api.cloudflare.com/client/v4${endpoint}`, {
-    headers: {
-      'Authorization': `Bearer ${CLOUDFLARE.token}`,
-      'Content-Type': 'application/json'
-    }
-  });
-  const data = await res.json();
-  if (!data.success) throw new Error(`Cloudflare API error: ${data.errors?.[0]?.message}`);
-  return data.result;
-}
-
-async function loadCloudflareData() {
-  try {
-    const records = await fetchCloudflare(`/zones/${CLOUDFLARE.zoneId}/dns_records?per_page=100`);
-    renderCloudflareRecords(records);
-    addLog('info', `Loaded ${records.length} DNS records`);
-  } catch (err) {
-    addLog('error', `Cloudflare load failed: ${err.message}`);
-  }
-}
-
-function renderCloudflareRecords(records) {
-  const container = document.getElementById('cloudflare-records');
-  if (!container) return;
-  
-  container.innerHTML = records.map(r => {
-    const proxied = r.proxied ? '🟡' : '⚫';
-    return `
-      <div class="cf-record">
-        <span class="cf-type">${r.type}</span>
-        <span class="cf-name">${escapeHtml(r.name)}</span>
-        <span class="cf-content">${escapeHtml(r.content)}</span>
-        <span class="cf-proxied">${proxied}</span>
-      </div>
-    `;
-  }).join('');
-}
-
-/* ===== DOKPLOY CONFIG ===== */
-const DOKPLOY = {
-  url: 'http://46.225.90.5:3000',
-  apiKey: 'xAFQvaqnIvtjUNazZXVuUbaYBcajDqLKwfyRUeMyJogCUSMGPYNqNIGpOEGGDDlo'
-};
-
-/* ===== DOKPLOY API ===== */
-async function fetchDokploy(endpoint) {
-  const res = await fetch(`${DOKPLOY.url}/api/${endpoint}`, {
-    headers: {
-      'accept': 'application/json',
-      'x-api-key': DOKPLOY.apiKey
-    }
-  });
-  if (!res.ok) throw new Error(`Dokploy API error: ${res.status}`);
-  return res.json();
-}
-
-async function loadDokployData() {
-  try {
-    const projects = await fetchDokploy('project.all');
-    renderDokployProjects(projects);
-    addLog('info', `Loaded ${projects.length} Dokploy projects`);
-  } catch (err) {
-    addLog('error', `Dokploy load failed: ${err.message}`);
-  }
-}
-
-function renderDokployProjects(projects) {
-  const container = document.getElementById('dokploy-projects');
-  if (!container) return;
-  
-  container.innerHTML = projects.map(p => {
-    const env = p.environments?.[0] || {};
-    const apps = env.applications?.length || 0;
-    const dbs = (env.postgres?.length || 0) + (env.mysql?.length || 0) + (env.mariadb?.length || 0) + (env.mongo?.length || 0) + (env.redis?.length || 0);
-    
-    return `
-      <div class="dokploy-project">
-        <div class="dp-header">
-          <span class="dp-name">${escapeHtml(p.name)}</span>
-          <span class="dp-status ${apps > 0 ? 'active' : 'empty'}">${apps > 0 ? '● Active' : '○ Empty'}</span>
-        </div>
-        <div class="dp-meta">
-          <span>🚀 ${apps} apps</span>
-          <span>🗄️ ${dbs} databases</span>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-/* ===== SYSTEM METRICS ===== */
-async function loadSystemMetrics() {
-  try {
-    // Load CPU usage
-    const cpuData = await fetchSystemMetric('cpu');
-    updateCpuGauge(cpuData.usage);
-    
-    // Load RAM usage
-    const memData = await fetchSystemMetric('memory');
-    updateMemoryGauge(memData.used, memData.total);
-    
-    // Load Disk usage
-    const diskData = await fetchSystemMetric('disk');
-    updateDiskGauge(diskData.used, diskData.total);
-    
-    // Load processes
-    const processes = await fetchSystemMetric('processes');
-    renderProcesses(processes);
-    
-    addLog('info', 'System metrics updated');
-  } catch (err) {
-    addLog('error', `Metrics failed: ${err.message}`);
-  }
-}
-
-async function fetchSystemMetric(type) {
-  // Mock data for now - in production, this would fetch from a system API
-  switch(type) {
-    case 'cpu':
-      return { usage: Math.floor(Math.random() * 30) + 10 }; // 10-40% random
-    case 'memory':
-      return { used: 4.2, total: 16 }; // 4.2GB used of 16GB
-    case 'disk':
-      return { used: 45, total: 100 }; // 45GB used of 100GB
-    case 'processes':
-      return [
-        { pid: 54922, name: 'python3', cpu: '2.1', mem: '1.2' },
-        { pid: 54894, name: 'node', cpu: '5.4', mem: '3.8' },
-        { pid: 1, name: 'systemd', cpu: '0.1', mem: '0.5' },
-        { pid: 1234, name: 'ollama', cpu: '12.3', mem: '8.2' }
-      ];
-    default:
-      return {};
-  }
-}
-
-function updateCpuGauge(usage) {
-  const gauge = document.getElementById('cpu-gauge');
-  const value = document.getElementById('cpu-value');
-  if (!gauge || !value) return;
-  
-  gauge.style.setProperty('--value', `${usage}%`);
-  value.textContent = `${usage}%`;
-  
-  // Color based on usage
-  if (usage > 80) gauge.classList.add('critical');
-  else if (usage > 60) gauge.classList.add('warning');
-  else gauge.classList.remove('critical', 'warning');
-}
-
-function updateMemoryGauge(used, total) {
-  const gauge = document.getElementById('mem-gauge');
-  const value = document.getElementById('mem-value');
-  const details = document.getElementById('mem-details');
-  if (!gauge || !value || !details) return;
-  
-  const percent = Math.round((used / total) * 100);
-  gauge.style.setProperty('--value', `${percent}%`);
-  value.textContent = `${percent}%`;
-  details.textContent = `${used} / ${total} GB`;
-}
-
-function updateDiskGauge(used, total) {
-  const gauge = document.getElementById('disk-gauge');
-  const value = document.getElementById('disk-value');
-  const details = document.getElementById('disk-details');
-  if (!gauge || !value || !details) return;
-  
-  const percent = Math.round((used / total) * 100);
-  gauge.style.setProperty('--value', `${percent}%`);
-  value.textContent = `${percent}%`;
-  details.textContent = `${used} / ${total} GB`;
-}
-
-function renderProcesses(processes) {
-  const tbody = document.getElementById('process-list');
-  if (!tbody) return;
-  
-  tbody.innerHTML = processes.map(p => `
-    <tr>
-      <td>${p.pid}</td>
-      <td>${escapeHtml(p.name)}</td>
-      <td>${p.cpu}%</td>
-      <td>${p.mem}%</td>
-    </tr>
-  `).join('');
-}
-
-/* ===== TERMINAL ===== */
-function initTerminal() {
-  const input = document.getElementById('terminal-input');
-  const output = document.getElementById('terminal-output');
-  if (!input || !output) return;
-  
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      const cmd = input.value.trim();
-      if (!cmd) return;
-      
-      appendToTerminal(`$ ${cmd}`, 'command');
-      executeCommand(cmd);
-      input.value = '';
-    }
-  });
-  
-  appendToTerminal('Welcome to Yeet Terminal', 'info');
-  appendToTerminal('Type "help" for available commands', 'info');
-}
-
-function appendToTerminal(text, type = 'output') {
-  const output = document.getElementById('terminal-output');
-  if (!output) return;
-  
-  const line = document.createElement('div');
-  line.className = `terminal-line ${type}`;
-  line.textContent = text;
-  output.appendChild(line);
-  output.scrollTop = output.scrollHeight;
-}
-
-function executeCommand(cmd) {
-  const commands = {
-    help: () => {
-      appendToTerminal('Available commands:', 'info');
-      appendToTerminal('  status    - Show system status', 'output');
-      appendToTerminal('  projects  - List all projects', 'output');
-      appendToTerminal('  clear     - Clear terminal', 'output');
-      appendToTerminal('  whoami    - Show current user', 'output');
-      appendToTerminal('  date      - Show current date/time', 'output');
-    },
-    status: () => {
-      appendToTerminal(`System: ${YEET.state.platform}`, 'output');
-      appendToTerminal(`Hostname: ${YEET.state.hostname}`, 'output');
-      appendToTerminal(`Uptime: ${formatUptime(performance.now())}`, 'output');
-    },
-    projects: () => {
-      YEET.config.projects.forEach(p => {
-        appendToTerminal(`  ${p.name} - ${p.status || 'unknown'}`, 'output');
-      });
-    },
-    clear: () => {
-      const output = document.getElementById('terminal-output');
-      if (output) output.innerHTML = '';
-    },
-    whoami: () => appendToTerminal(YEET.config.userName || 'Yigit', 'output'),
-    date: () => appendToTerminal(new Date().toLocaleString('tr-TR'), 'output')
-  };
-  
-  const cmdFn = commands[cmd.toLowerCase()];
-  if (cmdFn) {
-    cmdFn();
-  } else {
-    appendToTerminal(`Command not found: ${cmd}`, 'error');
-    appendToTerminal('Type "help" for available commands', 'info');
-  }
-}
-
-function formatUptime(ms) {
-  const seconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
-}
+import { YEET } from './js/config.js';
+import { loadEnv, getEnv } from './js/utils/env-loader.js';
+import {
+  formatDuration,
+  truncate,
+  escapeHtml,
+  setGauge,
+  showToast,
+  cacheClear
+} from './js/utils/helpers.js';
+import { initTerminal, appendToTerminal } from './js/components/terminal.js';
+import { loadSystemMetrics } from './js/services/system.js';
+import { loadDokployData, setDokployConfig } from './js/services/dokploy.js';
+import { loadCloudflareData, setCloudflareConfig } from './js/services/cloudflare.js';
+import { loadWeather } from './js/services/weather.js';
+import { initProjects, renderProjects, updateProjectMetrics } from './js/services/projects.js';
 
 /* ===== INIT ===== */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // Load env tokens first
+  await loadEnv();
+
+  // Configure APIs from env (no hardcoded secrets)
+  setDokployConfig(
+    getEnv('DOKPLOY_URL', 'http://46.225.90.5:3000'),
+    getEnv('DOKPLOY_API_KEY', '')
+  );
+  setCloudflareConfig(
+    getEnv('CLOUDFLARE_TOKEN', ''),
+    getEnv('CLOUDFLARE_ZONE_ID', 'df5db7732ba13e5e52c7fad73b23de1c')
+  );
+
   initTabs();
   initSettings();
   initProjects();
@@ -305,20 +41,20 @@ document.addEventListener('DOMContentLoaded', () => {
   initTerminal();
   initRefresh();
   detectSystem();
-  loadWorkspaceData();
-  loadSystemMetrics();
-  loadDokployData();
-  loadCloudflareData();
+
+  // Parallel data loading (fix race condition)
+  await Promise.all([
+    loadWorkspaceData(),
+    loadSystemMetrics(),
+    loadDokployData(),
+    loadCloudflareData(),
+    loadWeather()
+  ]);
+
   updateProjectMetrics();
   checkNetworkStatus();
   startAutoRefresh();
   startClock();
-  
-  // Load env vars after init
-  if (typeof process !== 'undefined' && process.env?.CLOUDFLARE_TOKEN) {
-    CLOUDFLARE.token = process.env.CLOUDFLARE_TOKEN;
-  }
-}
 });
 
 /* ===== CLOCK ===== */
@@ -377,13 +113,13 @@ function initTabs() {
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
       const target = tab.dataset.tab;
-      
+
       // Handle submenu parent
       if (tab.classList.contains('has-submenu')) {
         tab.classList.toggle('active');
         return;
       }
-      
+
       // Handle submenu items
       if (tab.classList.contains('submenu-item')) {
         document.querySelectorAll('.submenu-item').forEach(t => t.classList.remove('active'));
@@ -449,10 +185,13 @@ function initSettings() {
     updateGreeting(new Date());
   });
 
-  document.getElementById('refresh-btn')?.addEventListener('click', () => {
-    loadWorkspaceData();
-    loadSystemMetrics();
-    loadWeather();
+  document.getElementById('refresh-btn')?.addEventListener('click', async () => {
+    cacheClear();
+    await Promise.all([
+      loadWorkspaceData(),
+      loadSystemMetrics(),
+      loadWeather()
+    ]);
     updateProjectMetrics();
     checkNetworkStatus();
     showToast('Refreshed', 'success');
@@ -477,8 +216,10 @@ function startAutoRefresh() {
   stopAutoRefresh();
   if (YEET.config.autoRefresh) {
     YEET.state.timerId = setInterval(() => {
-      loadWorkspaceData();
-      loadSystemMetrics();
+      Promise.all([
+        loadWorkspaceData(),
+        loadSystemMetrics()
+      ]);
       updateProjectMetrics();
       checkNetworkStatus();
     }, YEET.config.refreshInterval);
@@ -496,20 +237,31 @@ function restartAutoRefresh() {
   startAutoRefresh();
 }
 
-/* ===== DATA LOADING ===== */
+function initRefresh() {
+  // Placeholder for future refresh logic
+}
+
+/* ===== DATA LOADING (Promise.all fix) ===== */
 async function loadWorkspaceData() {
   try {
-    const wsState = await fetchJson('../.openclaw/workspace-state.json');
-    renderWorkspaceState(wsState);
+    const [wsState, sessionFiles] = await Promise.all([
+      fetchJson('../.openclaw/workspace-state.json').catch(() => null),
+      discoverSessions()
+    ]);
 
-    YEET.config.sessionFiles = await discoverSessions();
+    if (wsState) renderWorkspaceState(wsState);
+
+    YEET.config.sessionFiles = sessionFiles;
     const sessions = [];
-    for (const file of YEET.config.sessionFiles.slice(0, 10)) {
-      try {
-        const s = await fetchJson(`../state/sessions/${encodeURIComponent(file)}`);
-        sessions.push(s);
-      } catch (e) { /* skip */ }
-    }
+    await Promise.all(
+      YEET.config.sessionFiles.slice(0, 10).map(async (file) => {
+        try {
+          const s = await fetchJson(`../state/sessions/${encodeURIComponent(file)}`);
+          sessions.push(s);
+        } catch (e) { /* skip */ }
+      })
+    );
+
     renderSessions(sessions);
     renderSystem(sessions);
 
@@ -547,59 +299,6 @@ async function discoverSessions() {
   return ['agent%3Acodex%3Aacp%3A8e648301-4795-4c10-bc19-4a1fce4a68a5.json'];
 }
 
-/* ===== WEATHER ===== */
-async function loadWeather() {
-  const city = YEET.config.weatherCity || 'Istanbul';
-
-  try {
-    // Simple one-liner
-    const simpleRes = await fetch(`https://wttr.in/${encodeURIComponent(city)}?format=%C|%t|%w|%h`);
-    const simpleText = await simpleRes.text();
-    const [condition, temp, wind, humidity] = simpleText.trim().split('|');
-
-    // Overview card
-    const mainEl = document.getElementById('weather-main');
-    const tempEl = document.getElementById('weather-temp');
-    const detailsEl = document.getElementById('weather-details');
-
-    if (tempEl) tempEl.textContent = temp || '--°C';
-    if (detailsEl) {
-      detailsEl.innerHTML = `
-        <div>${condition || 'Unknown'}</div>
-        <div>💨 ${wind || '--'} | 💧 ${humidity || '--'}</div>
-      `;
-    }
-
-    // Detailed card
-    const detailedEl = document.getElementById('weather-detailed');
-    if (detailedEl) {
-      detailedEl.innerHTML = `
-        <div class="weather-main">
-          <span class="weather-icon">${getWeatherEmoji(condition)}</span>
-          <span class="weather-temp">${temp || '--°C'}</span>
-        </div>
-        <div class="weather-details">
-          <div><strong>${condition || 'Unknown'}</strong></div>
-          <div>Wind: ${wind || '--'} | Humidity: ${humidity || '--'}</div>
-        </div>
-      `;
-    }
-  } catch (err) {
-    console.error('Weather load failed:', err);
-  }
-}
-
-function getWeatherEmoji(condition) {
-  const c = (condition || '').toLowerCase();
-  if (c.includes('sun') || c.includes('clear')) return '☀️';
-  if (c.includes('cloud')) return '☁️';
-  if (c.includes('rain') || c.includes('drizzle')) return '🌧️';
-  if (c.includes('snow')) return '❄️';
-  if (c.includes('thunder') || c.includes('storm')) return '⛈️';
-  if (c.includes('fog') || c.includes('mist')) return '🌫️';
-  return '⛅';
-}
-
 /* ===== RENDER: OVERVIEW ===== */
 function renderWorkspaceState(state) {
   const bootTime = state?.bootstrapSeededAt ? new Date(state.bootstrapSeededAt) : null;
@@ -614,8 +313,9 @@ function renderSessions(sessions) {
   const countEl = document.getElementById('session-count');
 
   const active = sessions.filter(s => !s.closed);
-  countEl.textContent = active.length;
+  if (countEl) countEl.textContent = active.length;
 
+  if (!container) return;
   if (sessions.length === 0) {
     container.innerHTML = '<p class="empty-state">No sessions found</p>';
     return;
@@ -677,6 +377,8 @@ function renderModels(sessions) {
 
 function renderTokenBars(sessions) {
   const container = document.getElementById('token-bars');
+  if (!container) return;
+
   const data = sessions.slice(0, 5).map((s, i) => {
     const name = (s.name || `Session ${i + 1}`).replace(/^agent:/, '');
     const usage = Math.floor(Math.random() * 80) + 10;
@@ -708,76 +410,13 @@ function renderSystem(sessions) {
 
   const memVal = Math.min(20 + activeCount * 12 + Math.floor(Math.random() * 15), 95);
   setGauge('memory-gauge', 'memory-value', memVal);
-  document.getElementById('memory-details').textContent =
-    `${(memVal * 0.16).toFixed(1)} / 16.0 GB`;
+  const memDetails = document.getElementById('memory-details');
+  if (memDetails) memDetails.textContent = `${(memVal * 0.16).toFixed(1)} / 16.0 GB`;
 
   const diskVal = Math.floor(Math.random() * 20) + 40;
   setGauge('disk-gauge', 'disk-value', diskVal);
-  document.getElementById('disk-details').textContent =
-    `${(diskVal * 0.5).toFixed(1)} / 500 GB`;
-
-  renderProcesses(sessions);
-}
-
-function setGauge(gaugeId, valueId, percent) {
-  const gauge = document.getElementById(gaugeId);
-  const value = document.getElementById(valueId);
-  if (gauge) gauge.style.setProperty('--value', percent);
-  if (value) value.textContent = percent + '%';
-}
-
-function renderProcesses(sessions) {
-  const tbody = document.getElementById('process-list');
-  const procs = sessions.map(s => ({
-    pid: s.pid || '—',
-    name: truncate((s.agent_command || s.name || 'unknown').split('/').pop() || 'unknown', 25),
-    cpu: (Math.random() * 5 + 0.5).toFixed(1),
-    mem: (Math.random() * 3 + 0.5).toFixed(1)
-  }));
-
-  if (procs.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No processes</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = procs.map(p => `
-    <tr>
-      <td>${p.pid}</td>
-      <td>${p.name}</td>
-      <td>${p.cpu}%</td>
-      <td>${p.mem}%</td>
-    </tr>
-  `).join('');
-}
-
-/* ===== LOGS ===== */
-function addLog(level, message) {
-  if (YEET.state.isPaused) return;
-
-  const entry = {
-    time: new Date().toLocaleTimeString(),
-    level,
-    message
-  };
-
-  YEET.state.logs.unshift(entry);
-  if (YEET.state.logs.length > 100) YEET.state.logs.pop();
-
-  renderLogs();
-}
-
-function renderLogs() {
-  const viewer = document.getElementById('log-viewer');
-  if (!viewer) return;
-  const code = viewer.querySelector('code');
-
-  code.innerHTML = YEET.state.logs.map(l => `
-    <div class="log-entry">
-      <span class="log-timestamp">${l.time}</span>
-      <span class="log-level-${l.level}">[${l.level.toUpperCase()}]</span>
-      ${escapeHtml(l.message)}
-    </div>
-  `).join('');
+  const diskDetails = document.getElementById('disk-details');
+  if (diskDetails) diskDetails.textContent = `${(diskVal * 0.5).toFixed(1)} / 500 GB`;
 }
 
 /* ===== DAILY TAB ===== */
@@ -786,33 +425,25 @@ function initDaily() {
   const savedFocus = localStorage.getItem('yeet-focus');
   if (savedFocus) {
     YEET.config.focus = savedFocus;
-    document.getElementById('focus-text').textContent = savedFocus;
+    const focusText = document.getElementById('focus-text');
+    if (focusText) focusText.textContent = savedFocus;
   }
 
   document.getElementById('edit-focus')?.addEventListener('click', () => {
     const newFocus = prompt('What is your focus for today?', YEET.config.focus);
     if (newFocus !== null) {
       YEET.config.focus = newFocus;
-      document.getElementById('focus-text').textContent = newFocus || 'No focus set.';
+      const focusText = document.getElementById('focus-text');
+      if (focusText) focusText.textContent = newFocus || 'No focus set.';
       localStorage.setItem('yeet-focus', newFocus);
       addLog('success', 'Focus updated');
     }
   });
 
-  // Converter
   initConverter();
-
-  // Bookmarks
   initBookmarks();
-
-  // Notes
   initNotes();
-
-  // Todos
   initTodos();
-
-  // Weather
-  loadWeather();
 }
 
 /* ===== CONVERTER ===== */
@@ -827,7 +458,6 @@ function initConverter() {
     const fromUnit = from?.value;
     const toUnit = to?.value;
 
-    // Conversion factors to base unit
     const toBase = {
       km: 1000, m: 1, ft: 0.3048, mi: 1609.34,
       kg: 1, lb: 0.453592,
@@ -962,236 +592,6 @@ window.deleteTodo = function(id) {
   renderTodos();
 };
 
-/* ===== PROJECTS ===== */
-function initProjects() {
-  const saved = localStorage.getItem('yeet-projects');
-  if (saved) YEET.config.projects = JSON.parse(saved);
-  else {
-    YEET.config.projects = [
-      { id: '1', name: 'OpenClaw Core', description: 'Main agent workspace', path: '~/.openclaw/workspace', tags: ['agent', 'core'], gitStatus: 'clean', lastCommit: '2 days ago' },
-      { id: '2', name: 'Yeet Dashboard', description: 'This dashboard', path: 'mission-control/', tags: ['frontend', 'dashboard'], gitStatus: 'modified', lastCommit: '5 hours ago' },
-      { id: '3', name: 'Fadeolog System', description: 'Barber shop appointment system (Next.js + Django)', path: 'D:/Program Files (x86)/fadeolog_system | C:/Users/HP/fadeolog_system', tags: ['fullstack', 'docker', 'production'], gitStatus: 'clean', lastCommit: '3 days ago', status: 'running', port: '3000', cpu: 12, mem: 8.5 },
-      { id: '4', name: 'Yigit Map System', description: 'Map-first city guide platform (Web + Mobile)', path: 'D:/Program Files (x86)/yigit-map | D:/Program Files (x86)/yigit-map-mobile', tags: ['fullstack', 'docker', 'production'], gitStatus: 'ahead', lastCommit: '1 week ago', status: 'stopped', port: '3001', cpu: 0, mem: 0 },
-      { id: '5', name: 'Biryolbulalim', description: 'Route/path finding app', path: 'D:/Program Files (x86)/biryolbulalim', tags: ['nodejs', 'docker', 'production'], gitStatus: 'clean', lastCommit: '2 weeks ago', status: 'stopped', port: '3002', cpu: 0, mem: 0 },
-      { id: '6', name: 'Yigit Solutions', description: 'Agency/business site', path: 'D:/Program Files (x86)/yigitsolutions', tags: ['nextjs', 'docker', 'production'], gitStatus: 'modified', lastCommit: '4 days ago', status: 'running', port: '3003', cpu: 5, mem: 4.2 },
-      { id: '7', name: 'HPE Gromme Tryout', description: 'HPE Gromme trial project', path: 'D:/Program Files (x86)/hpe-gromme-tryout', tags: ['react', 'nodejs'], gitStatus: 'clean', lastCommit: '1 month ago' },
-      { id: '8', name: 'PM Dev Roadmap', description: 'Project management roadmap', path: 'D:/Program Files (x86)/pm-dev-roadmap', tags: ['nextjs', 'nodejs'], gitStatus: 'behind', lastCommit: '2 months ago' },
-      { id: '9', name: 'SPFX Solution', description: 'SharePoint Framework solution', path: 'D:/Program Files (x86)/spfx-solution', tags: ['react', 'nodejs'], gitStatus: 'clean', lastCommit: '3 months ago' },
-      { id: '10', name: 'Sticker', description: 'Sticker app with Next.js', path: 'D:/Program Files (x86)/sticker', tags: ['nextjs', 'nodejs'], gitStatus: 'clean', lastCommit: '3 weeks ago' }
-    ];
-    saveConfig();
-  }
-
-  renderProjects();
-
-  document.getElementById('add-project-btn')?.addEventListener('click', showAddProjectModal);
-}
-
-function renderProjects() {
-  const grid = document.getElementById('projects-grid');
-  if (!grid) return;
-
-  if (YEET.config.projects.length === 0) {
-    grid.innerHTML = '<p class="empty-state">No projects yet. Click + Add Project to get started.</p>';
-    return;
-  }
-
-  grid.innerHTML = YEET.config.projects.map(p => {
-    const isSystem = p.tags?.includes('fullstack');
-    let subProjects = '';
-    
-    if (isSystem) {
-      if (p.name.includes('Fadeolog')) {
-        subProjects = `
-          <div class="project-sub">
-            <div class="sub-item">
-              <span class="sub-dot frontend"></span>
-              <span>Frontend: Next.js (Port 3000)</span>
-            </div>
-            <div class="sub-item">
-              <span class="sub-dot backend"></span>
-              <span>Backend: Django API (Port 8000)</span>
-            </div>
-          </div>
-        `;
-      } else if (p.name.includes('Yigit Map')) {
-        subProjects = `
-          <div class="project-sub">
-            <div class="sub-item">
-              <span class="sub-dot frontend"></span>
-              <span>Web: Next.js + Leaflet</span>
-            </div>
-            <div class="sub-item">
-              <span class="sub-dot backend"></span>
-              <span>Mobile: Expo + MapLibre</span>
-            </div>
-          </div>
-        `;
-      }
-    }
-    
-    const gitStatusColor = p.gitStatus === 'clean' ? 'var(--accent-green)' : 
-                            p.gitStatus === 'modified' ? 'var(--accent-yellow)' : 
-                            p.gitStatus === 'ahead' ? 'var(--accent-blue)' : 
-                            p.gitStatus === 'behind' ? 'var(--accent-orange)' : 'var(--text-muted)';
-    const gitStatusIcon = p.gitStatus === 'clean' ? '✓' : 
-                          p.gitStatus === 'modified' ? '!' : 
-                          p.gitStatus === 'ahead' ? '↑' : 
-                          p.gitStatus === 'behind' ? '↓' : '?';
-    
-    const isRunning = p.status === 'running';
-    const statusColor = isRunning ? 'var(--accent-green)' : 'var(--text-muted)';
-    const statusText = isRunning ? '●' : '○';
-    
-    return `
-    <div class="project-card ${isSystem ? 'system-card' : ''}" data-id="${p.id}">
-      <div class="project-header">
-        <h4>${escapeHtml(p.name)}</h4>
-        <div class="project-health" title="Git: ${p.gitStatus} | Last commit: ${p.lastCommit}">
-          <span class="git-status" style="color: ${gitStatusColor}">${gitStatusIcon} ${p.gitStatus}</span>
-          <span class="last-commit">${p.lastCommit}</span>
-        </div>
-      </div>
-      <div class="project-status-bar">
-        <span class="status-indicator" style="color: ${statusColor}" title="${isRunning ? 'Running on port ' + p.port : 'Stopped'}">
-          ${statusText} ${isRunning ? 'Port ' + p.port : 'Stopped'}
-        </span>
-        ${isRunning ? `
-          <button class="btn btn-sm btn-stop" onclick="toggleProjectStatus('${p.id}')">⏹ Stop</button>
-          <a href="http://localhost:${p.port}" target="_blank" class="btn btn-sm">↗ Open</a>
-        ` : `
-          <button class="btn btn-sm btn-start" onclick="toggleProjectStatus('${p.id}')">▶ Start</button>
-        `}
-      </div>
-      <p>${escapeHtml(p.description || '')}</p>
-      ${subProjects}
-      <div class="project-resources">
-        <div class="resource-bar">
-          <span class="resource-label">CPU</span>
-          <div class="resource-track">
-            <div class="resource-fill" style="width: ${p.cpu || 0}%; background: ${(p.cpu || 0) > 80 ? 'var(--accent-red)' : (p.cpu || 0) > 60 ? 'var(--accent-yellow)' : 'var(--accent-green)'}"></div>
-          </div>
-          <span class="resource-value">${p.cpu || 0}%</span>
-        </div>
-        <div class="resource-bar">
-          <span class="resource-label">MEM</span>
-          <div class="resource-track">
-            <div class="resource-fill" style="width: ${p.mem || 0}%; background: ${(p.mem || 0) > 80 ? 'var(--accent-red)' : (p.mem || 0) > 60 ? 'var(--accent-yellow)' : 'var(--accent-green)'}"></div>
-          </div>
-          <span class="resource-value">${p.mem || 0}%</span>
-        </div>
-      </div>
-      <div class="project-tags">
-        ${(p.tags || []).map(t => `<span class="project-tag tag-${t}">${t}</span>`).join('')}
-      </div>
-      <div class="project-meta">
-        <span>${escapeHtml(p.path || '')}</span>
-      </div>
-      <div class="project-actions">
-        <button class="btn btn-sm" onclick="openProjectFolder('${p.id}')" title="Open Folder">📁</button>
-        <button class="btn btn-sm" onclick="openProjectGithub('${p.id}')" title="GitHub">🐙</button>
-        <button class="btn btn-sm" onclick="editProject('${p.id}')">Edit</button>
-        <button class="btn btn-sm" onclick="deleteProject('${p.id}')" style="color: var(--accent-red);">Delete</button>
-      </div>
-    </div>
-  `}).join('');
-}
-
-window.editProject = function(id) {
-  const p = YEET.config.projects.find(x => x.id === id);
-  if (!p) return;
-
-  createModal('Edit Project', [
-    { id: 'p-name', label: 'Name', type: 'text', value: p.name },
-    { id: 'p-desc', label: 'Description', type: 'textarea', value: p.description },
-    { id: 'p-path', label: 'Path', type: 'text', value: p.path }
-  ], (values) => {
-    p.name = values['p-name'] || p.name;
-    p.description = values['p-desc'] || '';
-    p.path = values['p-path'] || '';
-    saveConfig();
-    renderProjects();
-    showToast('Project updated', 'success');
-  });
-};
-
-window.deleteProject = function(id) {
-  YEET.config.projects = YEET.config.projects.filter(x => x.id !== id);
-  saveConfig();
-  renderProjects();
-  addLog('info', 'Project deleted');
-};
-
-window.openProjectFolder = function(id) {
-  const p = YEET.config.projects.find(x => x.id === id);
-  if (!p) return;
-  addLog('info', `Opening folder: ${p.path}`);
-  showToast('Opening folder...', 'info');
-};
-
-window.openProjectGithub = function(id) {
-  const p = YEET.config.projects.find(x => x.id === id);
-  if (!p) return;
-  let githubUrl = '';
-  
-  switch(p.name) {
-    case 'Fadeolog System':
-      githubUrl = 'https://github.com/yeetozer/fadeolog-frontend';
-      break;
-    case 'Yigit Map System':
-      githubUrl = 'https://github.com/yeetozer/yeets-map';
-      break;
-    case 'HPE Gromme Tryout':
-      githubUrl = 'https://github.com/yeetozer/hpe-gromme-tryout';
-      break;
-    case 'PM Dev Roadmap':
-      githubUrl = 'https://github.com/yeetozer/pm-dev-roadmap';
-      break;
-    default:
-      showToast('No GitHub link configured', 'warning');
-      return;
-  }
-  
-  if (githubUrl) {
-    window.open(githubUrl, '_blank');
-    addLog('info', `Opening GitHub: ${githubUrl}`);
-  }
-};
-
-function updateProjectMetrics() {
-  // Simulate resource updates for running projects
-  YEET.config.projects.forEach(p => {
-    if (p.status === 'running') {
-      p.cpu = Math.max(1, Math.min(100, (p.cpu || 10) + (Math.random() * 10 - 5)));
-      p.mem = Math.max(1, Math.min(100, (p.mem || 5) + (Math.random() * 5 - 2.5)));
-    } else {
-      p.cpu = 0;
-      p.mem = 0;
-    }
-  });
-  renderProjects();
-}
-
-function showAddProjectModal() {
-  createModal('Add Project', [
-    { id: 'p-name', label: 'Name', type: 'text' },
-    { id: 'p-desc', label: 'Description', type: 'textarea' },
-    { id: 'p-path', label: 'Path', type: 'text' }
-  ], (values) => {
-    const proj = {
-      id: Date.now().toString(),
-      name: values['p-name'] || 'Untitled',
-      description: values['p-desc'] || '',
-      path: values['p-path'] || '',
-      tags: []
-    };
-    YEET.config.projects.push(proj);
-    saveConfig();
-    renderProjects();
-    showToast('Project added', 'success');
-  });
-}
-
 /* ===== NETWORK MONITORING ===== */
 async function checkNetworkStatus() {
   const services = [
@@ -1201,26 +601,26 @@ async function checkNetworkStatus() {
     { name: 'Fadeolog', url: 'http://localhost:3000', status: 'unknown' },
     { name: 'Yigit Map', url: 'http://localhost:3001', status: 'unknown' }
   ];
-  
-  for (const service of services) {
+
+  await Promise.all(services.map(async (service) => {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 2000);
-      const res = await fetch(service.url, { signal: controller.signal, mode: 'no-cors' });
+      await fetch(service.url, { signal: controller.signal, mode: 'no-cors' });
       clearTimeout(timeout);
       service.status = 'online';
     } catch (err) {
       service.status = 'offline';
     }
-  }
-  
+  }));
+
   renderNetworkStatus(services);
 }
 
 function renderNetworkStatus(services) {
   const container = document.getElementById('network-status');
   if (!container) return;
-  
+
   container.innerHTML = services.map(s => `
     <div class="service-item ${s.status}">
       <span class="service-dot"></span>
@@ -1288,50 +688,35 @@ function detectSystem() {
   document.getElementById('platform').textContent = YEET.state.platform;
 }
 
-/* ===== UTILS ===== */
-function formatDuration(ms) {
-  const sec = Math.floor(ms / 1000);
-  const min = Math.floor(sec / 60);
-  const hr = Math.floor(min / 60);
-  const day = Math.floor(hr / 24);
+/* ===== LOGS ===== */
+function addLog(level, message) {
+  if (YEET.state.isPaused) return;
 
-  if (day > 0) return `${day}d ${hr % 24}h ${min % 60}m`;
-  if (hr > 0) return `${hr}h ${min % 60}m ${sec % 60}s`;
-  if (min > 0) return `${min}m ${sec % 60}s`;
-  return `${sec}s`;
+  const entry = {
+    time: new Date().toLocaleTimeString(),
+    level,
+    message
+  };
+
+  YEET.state.logs.unshift(entry);
+  if (YEET.state.logs.length > 100) YEET.state.logs.pop();
+
+  renderLogs();
 }
 
-function truncate(str, len) {
-  if (!str) return '—';
-  return str.length > len ? str.slice(0, len) + '…' : str;
-}
+function renderLogs() {
+  const viewer = document.getElementById('log-viewer');
+  if (!viewer) return;
+  const code = viewer.querySelector('code');
+  if (!code) return;
 
-function escapeHtml(str) {
-  if (!str) return '';
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-/* ===== TOAST ===== */
-function showToast(message, type = 'info') {
-  let container = document.querySelector('.toast-container');
-  if (!container) {
-    container = document.createElement('div');
-    container.className = 'toast-container';
-    document.body.appendChild(container);
-  }
-
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.textContent = message;
-  container.appendChild(toast);
-
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateX(20px)';
-    setTimeout(() => toast.remove(), 300);
-  }, 3000);
+  code.innerHTML = YEET.state.logs.map(l => `
+    <div class="log-entry">
+      <span class="log-timestamp">${l.time}</span>
+      <span class="log-level-${l.level}">[${l.level.toUpperCase()}]</span>
+      ${escapeHtml(l.message)}
+    </div>
+  `).join('');
 }
 
 /* ===== LOG CONTROLS ===== */
@@ -1349,3 +734,6 @@ document.addEventListener('DOMContentLoaded', () => {
     addLog('info', 'Logs cleared');
   });
 });
+
+// Expose addLog globally for modules
+window.addLog = addLog;
