@@ -1,4 +1,4 @@
-/** Yeet Dashboard - Personal Command Center */
+/** Yeet Dashboard - Mission Control */
 
 'use strict';
 
@@ -10,27 +10,36 @@ import {
   setGauge,
   showToast,
   cacheClear,
-  createModal,
   addLog
 } from './js/utils/helpers.js';
-import { initTerminal, appendToTerminal } from './js/components/terminal.js';
+import { initTerminal } from './js/components/terminal.js';
 import { loadSystemMetrics } from './js/services/system.js';
 import { loadDokployData } from './js/services/dokploy.js';
 import { loadCloudflareData } from './js/services/cloudflare.js';
 import { loadWeather } from './js/services/weather.js';
-import { initProjects, renderProjects, updateProjectMetrics } from './js/services/projects.js';
+import { initProjects, updateProjectMetrics } from './js/services/projects.js';
 
-/* ===== INIT ===== */
 document.addEventListener('DOMContentLoaded', async () => {
+  YEET.state.currentTab = 'overview';
+  YEET.state.logFilter = '';
+
+  document.addEventListener('projects-updated', () => {
+    renderProjectOverview();
+  });
+
   initTabs();
+  initJumpButtons();
   initSettings();
   initProjects();
   initDaily();
+  initLogs();
   initTerminal();
-  initRefresh();
   detectSystem();
+  syncConfigIndicators();
+  renderMissionSnapshot([]);
+  renderProjectOverview();
+  renderAlertFeed();
 
-  // Parallel data loading (fix race condition)
   await Promise.all([
     loadWorkspaceData(),
     loadSystemMetrics(),
@@ -40,12 +49,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   ]);
 
   updateProjectMetrics();
+  renderProjectOverview();
   checkNetworkStatus();
   startAutoRefresh();
   startClock();
 });
 
-/* ===== CLOCK ===== */
 function startClock() {
   updateClock();
   setInterval(updateClock, 1000);
@@ -53,27 +62,27 @@ function startClock() {
 
 function updateClock() {
   const now = new Date();
-  const timeEl = document.getElementById('clock-time');
-  const dateEl = document.getElementById('clock-date');
+  const longTime = now.toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  const longDate = now.toLocaleDateString('en-GB', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+  const shortDate = now.toLocaleDateString('en-GB', {
+    month: 'short',
+    day: 'numeric'
+  });
 
-  if (timeEl) {
-    timeEl.textContent = now.toLocaleTimeString('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    });
-  }
-
-  if (dateEl) {
-    dateEl.textContent = now.toLocaleDateString('en-GB', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  }
-
+  setText('clock-time', longTime);
+  setText('clock-date', longDate);
+  setText('header-time', longTime);
+  setText('header-date', shortDate);
   updateGreeting(now);
 }
 
@@ -90,68 +99,98 @@ function updateGreeting(now) {
   else if (hour < 17) greeting = 'Good afternoon';
   else greeting = 'Good evening';
 
-  greetingEl.textContent = `${greeting}, ${name}!`;
+  greetingEl.textContent = `${greeting}, ${name}.`;
 }
 
-/* ===== TABS ===== */
 function initTabs() {
-  const tabs = document.querySelectorAll('.nav-tab, .submenu-item');
-  const contents = document.querySelectorAll('.tab-content');
+  const serviceTrigger = document.querySelector('.nav-tab.has-submenu');
 
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      const target = tab.dataset.tab;
+  serviceTrigger?.addEventListener('click', (event) => {
+    if (event.target.closest('.submenu-item')) return;
+    if (serviceTrigger.dataset.tab === 'services') {
+      serviceTrigger.classList.toggle('active');
+      serviceTrigger.setAttribute('aria-expanded', String(serviceTrigger.classList.contains('active')));
+      return;
+    }
+  });
 
-      // Handle submenu parent
-      if (tab.classList.contains('has-submenu')) {
-        tab.classList.toggle('active');
-        return;
-      }
+  document.querySelectorAll('.nav-tab[data-tab]:not(.has-submenu), .submenu-item[data-tab]').forEach((trigger) => {
+    trigger.addEventListener('click', () => activateTab(trigger.dataset.tab));
+  });
 
-      // Handle submenu items
-      if (tab.classList.contains('submenu-item')) {
-        document.querySelectorAll('.submenu-item').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-      }
+  activateTab(document.querySelector('.nav-tab.active')?.dataset.tab || 'overview');
+}
 
-      tabs.forEach(t => {
-        if (!t.classList.contains('has-submenu')) {
-          t.classList.remove('active');
-        }
-      });
-      contents.forEach(c => c.classList.remove('active'));
-
-      tab.classList.add('active');
-      document.getElementById(target)?.classList.add('active');
-      document.getElementById('page-title').textContent =
-        target.charAt(0).toUpperCase() + target.slice(1);
-    });
+function initJumpButtons() {
+  document.querySelectorAll('[data-jump-tab]').forEach((button) => {
+    button.addEventListener('click', () => activateTab(button.dataset.jumpTab));
   });
 }
 
-/* ===== SETTINGS ===== */
+function activateTab(target) {
+  const panel = document.getElementById(target);
+  if (!panel) return;
+
+  YEET.state.currentTab = target;
+
+  document.querySelectorAll('.tab-content').forEach((content) => {
+    content.classList.toggle('active', content.id === target);
+  });
+
+  document.querySelectorAll('.nav-tab[data-tab], .submenu-item[data-tab]').forEach((trigger) => {
+    const isActive = trigger.dataset.tab === target;
+    trigger.classList.toggle('active', isActive);
+    trigger.setAttribute('aria-selected', String(isActive));
+  });
+
+  const servicesTrigger = document.querySelector('.nav-tab[data-tab="services"]');
+  if (servicesTrigger) {
+    const serviceChildActive = target === 'cloudflare' || target === 'dokploy';
+    servicesTrigger.classList.toggle('active-parent', serviceChildActive);
+  }
+
+  const activeTrigger = document.querySelector(`.nav-tab[data-tab="${target}"], .submenu-item[data-tab="${target}"]`);
+  updatePageCopy(activeTrigger, target);
+
+  if (target === 'terminal') {
+    window.requestAnimationFrame(() => {
+      document.getElementById('terminal-input')?.focus();
+    });
+  }
+}
+
+function updatePageCopy(trigger, target) {
+  const title = trigger?.dataset.title || titleCase(target);
+  const description = trigger?.dataset.description || 'Operational dashboard section';
+  setText('page-title', title);
+  setText('page-description', description);
+}
+
 function initSettings() {
   const refreshSelect = document.getElementById('refresh-interval');
   const autoCheckbox = document.getElementById('auto-refresh');
   const weatherCityInput = document.getElementById('weather-city');
   const userNameInput = document.getElementById('user-name');
 
-  // Load from localStorage
   const saved = localStorage.getItem('yeet-dashboard');
   if (saved) {
     const parsed = JSON.parse(saved);
     YEET.config = { ...YEET.config, ...parsed };
-
-    if (refreshSelect) refreshSelect.value = String(YEET.config.refreshInterval / 1000);
-    if (autoCheckbox) autoCheckbox.checked = YEET.config.autoRefresh;
-    if (weatherCityInput) weatherCityInput.value = YEET.config.weatherCity;
-    if (userNameInput) userNameInput.value = YEET.config.userName;
   }
+
+  if (refreshSelect) refreshSelect.value = String(YEET.config.refreshInterval / 1000);
+  if (autoCheckbox) autoCheckbox.checked = YEET.config.autoRefresh;
+  if (weatherCityInput) weatherCityInput.value = YEET.config.weatherCity;
+  if (userNameInput) userNameInput.value = YEET.config.userName;
+
+  syncConfigIndicators();
+  updateGreeting(new Date());
 
   refreshSelect?.addEventListener('change', () => {
     YEET.config.refreshInterval = parseInt(refreshSelect.value, 10) * 1000;
     saveConfig();
     restartAutoRefresh();
+    syncConfigIndicators();
   });
 
   autoCheckbox?.addEventListener('change', () => {
@@ -159,11 +198,13 @@ function initSettings() {
     saveConfig();
     if (YEET.config.autoRefresh) startAutoRefresh();
     else stopAutoRefresh();
+    syncConfigIndicators();
   });
 
   weatherCityInput?.addEventListener('change', () => {
     YEET.config.weatherCity = weatherCityInput.value || 'Istanbul';
     saveConfig();
+    syncConfigIndicators();
     loadWeather();
   });
 
@@ -183,8 +224,9 @@ function initSettings() {
       loadWeather()
     ]);
     updateProjectMetrics();
+    renderProjectOverview();
     checkNetworkStatus();
-    showToast('Refreshed', 'success');
+    showToast('Dashboard refreshed', 'success');
   });
 }
 
@@ -201,21 +243,31 @@ function saveConfig() {
   }));
 }
 
-/* ===== AUTO REFRESH ===== */
+function syncConfigIndicators() {
+  const city = YEET.config.weatherCity || 'Istanbul';
+  const refreshText = YEET.config.autoRefresh
+    ? `${YEET.config.refreshInterval / 1000}s auto`
+    : 'Manual';
+
+  setText('weather-loc', city);
+  setText('refresh-cycle', refreshText);
+}
+
 function startAutoRefresh() {
   stopAutoRefresh();
-  if (YEET.config.autoRefresh) {
-    YEET.state.timerId = setInterval(() => {
-      Promise.all([
-        loadWorkspaceData(),
-        loadSystemMetrics(),
-        loadDokployData(),
-        loadCloudflareData()
-      ]);
-      updateProjectMetrics();
-      checkNetworkStatus();
-    }, YEET.config.refreshInterval);
-  }
+  if (!YEET.config.autoRefresh) return;
+
+  YEET.state.timerId = setInterval(() => {
+    Promise.all([
+      loadWorkspaceData(),
+      loadSystemMetrics(),
+      loadDokployData(),
+      loadCloudflareData()
+    ]);
+    updateProjectMetrics();
+    renderProjectOverview();
+    checkNetworkStatus();
+  }, YEET.config.refreshInterval);
 }
 
 function stopAutoRefresh() {
@@ -229,11 +281,6 @@ function restartAutoRefresh() {
   startAutoRefresh();
 }
 
-function initRefresh() {
-  // Placeholder for future refresh logic
-}
-
-/* ===== DATA LOADING (Promise.all fix) ===== */
 async function loadWorkspaceData() {
   try {
     const [wsState, sessionFiles] = await Promise.all([
@@ -248,18 +295,29 @@ async function loadWorkspaceData() {
     await Promise.all(
       YEET.config.sessionFiles.slice(0, 10).map(async (file) => {
         try {
-          const s = await fetchJson(`../state/sessions/${encodeURIComponent(file)}`);
-          sessions.push(s);
-        } catch (e) { /* skip */ }
+          const session = await fetchJson(`../state/sessions/${encodeURIComponent(file)}`);
+          sessions.push(session);
+        } catch (error) {
+          return null;
+        }
+        return null;
       })
     );
 
     renderSessions(sessions);
     renderSystem(sessions);
+    renderMissionSnapshot(sessions);
+    renderProjectOverview();
 
     YEET.state.lastUpdate = new Date();
-    document.getElementById('last-updated').textContent =
-      YEET.state.lastUpdate.toLocaleTimeString();
+    const updateTime = YEET.state.lastUpdate.toLocaleTimeString('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+    setText('last-updated', updateTime);
+    setText('projects-last-sync', updateTime);
 
     addLog('info', `Dashboard refreshed. ${sessions.length} sessions loaded.`);
   } catch (err) {
@@ -280,156 +338,227 @@ async function discoverSessions() {
       const text = await res.text();
       const files = [];
       const regex = /href="([^"]+\.json)"/g;
-      let m;
-      while ((m = regex.exec(text)) !== null) {
-        files.push(decodeURIComponent(m[1]));
+      let match;
+      while ((match = regex.exec(text)) !== null) {
+        files.push(decodeURIComponent(match[1]));
       }
       return files;
     }
-  } catch (e) { /* file:// won't allow directory listing */ }
+  } catch (error) {
+    return ['agent%3Acodex%3Aacp%3A8e648301-4795-4c10-bc19-4a1fce4a68a5.json'];
+  }
 
   return ['agent%3Acodex%3Aacp%3A8e648301-4795-4c10-bc19-4a1fce4a68a5.json'];
 }
 
-/* ===== RENDER: OVERVIEW ===== */
 function renderWorkspaceState(state) {
   const bootTime = state?.bootstrapSeededAt ? new Date(state.bootstrapSeededAt) : null;
-  if (bootTime) {
-    const uptime = Date.now() - bootTime.getTime();
-    document.getElementById('uptime').textContent = formatDuration(uptime);
-  }
+  if (!bootTime) return;
+  const uptime = Date.now() - bootTime.getTime();
+  setText('uptime', formatDuration(uptime));
 }
 
 function renderSessions(sessions) {
   const container = document.getElementById('sessions-list');
   const countEl = document.getElementById('session-count');
+  const active = sessions.filter((session) => !session.closed);
 
-  const active = sessions.filter(s => !s.closed);
-  if (countEl) countEl.textContent = active.length;
-
+  if (countEl) countEl.textContent = String(active.length);
   if (!container) return;
+
   if (sessions.length === 0) {
-    container.innerHTML = '<p class="empty-state">No sessions found</p>';
+    container.innerHTML = '<p class="empty-state compact">No sessions found. The gateway is idle.</p>';
+    renderModels([]);
+    renderTokenBars([]);
     return;
   }
 
-  container.innerHTML = sessions.map(s => {
-    const name = s.name || s.acpx_record_id || 'Unknown';
-    const isActive = !s.closed;
-    const agent = s.agent_command || '—';
-    const created = s.created_at ? new Date(s.created_at).toLocaleString() : '—';
+  const orderedSessions = [...sessions].sort((a, b) => Number(Boolean(a.closed)) - Number(Boolean(b.closed)));
+  container.innerHTML = orderedSessions.slice(0, 6).map((session) => {
+    const name = session.name || session.acpx_record_id || 'Unknown';
+    const isActive = !session.closed;
+    const agent = session.agent_command || 'No agent command';
+    const created = session.created_at ? new Date(session.created_at).toLocaleString() : 'Unknown time';
 
     return `
-      <div class="session-item">
+      <article class="session-item">
+        <div class="session-mark" aria-hidden="true">${isActive ? '●' : '○'}</div>
         <div class="session-info">
-          <div class="session-name" title="${name}">${truncate(name, 35)}</div>
-          <div class="session-meta">${truncate(agent, 40)} · ${created}</div>
+          <div class="session-name" title="${escapeHtml(name)}">${truncate(name, 38)}</div>
+          <div class="session-meta">
+            <span>${truncate(agent, 42)}</span>
+            <span>${created}</span>
+          </div>
         </div>
         <span class="session-status ${isActive ? 'active' : 'closed'}">
           ${isActive ? 'Active' : 'Closed'}
         </span>
-      </div>
+      </article>
     `;
   }).join('');
 
-  renderTokenBars(sessions);
   renderModels(sessions);
+  renderTokenBars(sessions);
 }
 
-function renderModels(sessions) {
+function getSessionModels(sessions) {
   const models = new Map();
-  sessions.forEach(s => {
-    const model = s.model || 'ollama/kimi-k2.6:cloud';
-    if (!models.has(model)) {
-      models.set(model, { name: model, active: !s.closed });
-    } else if (!s.closed) {
-      models.get(model).active = true;
+  sessions.forEach((session) => {
+    const name = session.model || 'ollama/kimi-k2.6:cloud';
+    if (!models.has(name)) {
+      models.set(name, { name, activeSessions: session.closed ? 0 : 1 });
+    } else if (!session.closed) {
+      models.get(name).activeSessions += 1;
     }
   });
 
   if (models.size === 0) {
-    models.set('ollama/kimi-k2.6:cloud', { name: 'ollama/kimi-k2.6:cloud', active: true });
+    models.set('ollama/kimi-k2.6:cloud', { name: 'ollama/kimi-k2.6:cloud', activeSessions: 1 });
   }
 
-  const modelCard = document.getElementById('models-list');
-  if (modelCard) {
-    modelCard.innerHTML = Array.from(models.values()).map(m => `
-      <div class="model-item">
-        <span class="model-name">${m.name}</span>
-        <span class="model-status ${m.active ? 'active' : ''}">
-          ${m.active ? 'Active' : 'Idle'}
-        </span>
+  return models;
+}
+
+function renderModels(sessions) {
+  const models = getSessionModels(sessions);
+  const container = document.getElementById('models-list');
+  if (!container) return;
+
+  container.innerHTML = Array.from(models.values()).map((model) => `
+    <div class="model-item">
+      <div class="model-copy">
+        <span class="model-name">${escapeHtml(model.name)}</span>
+        <span class="model-meta">${model.activeSessions} active session${model.activeSessions === 1 ? '' : 's'}</span>
       </div>
-    `).join('');
-  }
+      <span class="model-status ${model.activeSessions > 0 ? 'active' : ''}">
+        ${model.activeSessions > 0 ? 'Online' : 'Idle'}
+      </span>
+    </div>
+  `).join('');
 
-  const badge = document.getElementById('model-count');
-  if (badge) badge.textContent = models.size;
+  setText('model-count', String(models.size));
 }
 
 function renderTokenBars(sessions) {
   const container = document.getElementById('token-bars');
   if (!container) return;
 
-  const data = sessions.slice(0, 5).map((s, i) => {
-    const name = (s.name || `Session ${i + 1}`).replace(/^agent:/, '');
-    const usage = Math.floor(Math.random() * 80) + 10;
-    const color = usage > 70 ? 'var(--accent-red)' : usage > 40 ? 'var(--accent-yellow)' : 'var(--accent-green)';
-    return { name: truncate(name, 20), usage, color };
+  const data = sessions.slice(0, 5).map((session, index) => {
+    const name = (session.name || `Session ${index + 1}`).replace(/^agent:/, '');
+    const usage = pseudoMetric(`${name}:${index}`, 18, 88);
+    const tier = usage > 72 ? 'High' : usage > 45 ? 'Moderate' : 'Low';
+    const color = usage > 72
+      ? 'var(--accent-red)'
+      : usage > 45
+        ? 'var(--accent-yellow)'
+        : 'var(--accent-green)';
+
+    return { name: truncate(name, 24), usage, tier, color };
   });
 
   if (data.length === 0) {
-    container.innerHTML = '<p class="empty-state">No token data</p>';
+    container.innerHTML = '<p class="empty-state compact">No token telemetry available.</p>';
     return;
   }
 
-  container.innerHTML = data.map(d => `
+  container.innerHTML = data.map((item) => `
     <div class="token-bar-item">
-      <span class="token-bar-label" title="${d.name}">${d.name}</span>
-      <div class="token-bar-track">
-        <div class="token-bar-fill" style="width: ${d.usage}%; background: ${d.color};"></div>
+      <div class="token-bar-copy">
+        <span class="token-bar-label" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</span>
+        <span class="token-bar-tier">${item.tier}</span>
       </div>
-      <span class="token-bar-value">${d.usage}%</span>
+      <div class="token-bar-track">
+        <div class="token-bar-fill" style="width: ${item.usage}%; background: ${item.color};"></div>
+      </div>
+      <span class="token-bar-value">${item.usage}%</span>
     </div>
   `).join('');
 }
 
-/* ===== RENDER: SYSTEM ===== */
 function renderSystem(sessions) {
-  const activeCount = sessions.filter(s => !s.closed).length;
+  const activeCount = sessions.filter((session) => !session.closed).length;
   const cpuVal = Math.min(activeCount * 15 + Math.floor(Math.random() * 10), 100);
-  setGauge('cpu-gauge', 'cpu-value', cpuVal);
-
   const memVal = Math.min(20 + activeCount * 12 + Math.floor(Math.random() * 15), 95);
-  setGauge('memory-gauge', 'memory-value', memVal);
-  const memDetails = document.getElementById('memory-details');
-  if (memDetails) memDetails.textContent = `${(memVal * 0.16).toFixed(1)} / 16.0 GB`;
-
   const diskVal = Math.floor(Math.random() * 20) + 40;
+
+  setGauge('cpu-gauge', 'cpu-value', cpuVal);
+  setGauge('memory-gauge', 'memory-value', memVal);
   setGauge('disk-gauge', 'disk-value', diskVal);
-  const diskDetails = document.getElementById('disk-details');
-  if (diskDetails) diskDetails.textContent = `${(diskVal * 0.5).toFixed(1)} / 500 GB`;
+
+  setText('memory-details', `${(memVal * 0.16).toFixed(1)} / 16.0 GB`);
+  setText('disk-details', `${(diskVal * 0.5).toFixed(1)} / 500 GB`);
 }
 
-/* ===== DAILY TAB ===== */
+function renderMissionSnapshot(sessions) {
+  const activeSessions = sessions.filter((session) => !session.closed).length;
+  const modelCount = getSessionModels(sessions).size;
+  const runningProjects = YEET.config.projects.filter((project) => project.status === 'running').length;
+  const totalProjects = YEET.config.projects.length;
+
+  setText('summary-active-sessions', String(activeSessions));
+  setText('summary-model-count', String(modelCount));
+  setText('summary-running-projects', String(runningProjects));
+  setText('summary-total-projects', String(totalProjects));
+  setText('overview-project-count', String(totalProjects));
+  updateAlertCount();
+}
+
+function renderProjectOverview() {
+  const overview = document.getElementById('project-overview-list');
+  const running = YEET.config.projects.filter((project) => project.status === 'running');
+  const stopped = YEET.config.projects.filter((project) => project.status !== 'running');
+  const dirty = YEET.config.projects.filter((project) => project.gitStatus && project.gitStatus !== 'clean');
+  const topProjects = [...YEET.config.projects].sort((a, b) => {
+    const aScore = a.status === 'running' ? 0 : 1;
+    const bScore = b.status === 'running' ? 0 : 1;
+    return aScore - bScore;
+  }).slice(0, 4);
+
+  setText('projects-running-count', String(running.length));
+  setText('projects-stopped-count', String(stopped.length));
+  setText('projects-dirty-count', String(dirty.length));
+  setText('overview-project-count', String(YEET.config.projects.length));
+  setText('summary-running-projects', String(running.length));
+  setText('summary-total-projects', String(YEET.config.projects.length));
+
+  if (!overview) return;
+
+  if (topProjects.length === 0) {
+    overview.innerHTML = '<p class="empty-state compact">No projects tracked yet.</p>';
+    return;
+  }
+
+  overview.innerHTML = topProjects.map((project) => {
+    const runningState = project.status === 'running';
+    return `
+      <article class="overview-project-item">
+        <div class="overview-project-copy">
+          <strong>${escapeHtml(project.name)}</strong>
+          <span>${truncate(project.description || project.path || 'No description', 46)}</span>
+        </div>
+        <div class="overview-project-state ${runningState ? 'running' : 'stopped'}">
+          <span class="state-dot" aria-hidden="true"></span>
+          <span>${runningState ? 'Running' : 'Stopped'}</span>
+        </div>
+      </article>
+    `;
+  }).join('');
+}
+
 function initDaily() {
-  // Focus
   const savedFocus = localStorage.getItem('yeet-focus');
   if (savedFocus) {
     YEET.config.focus = savedFocus;
-    const focusText = document.getElementById('focus-text');
-    if (focusText) focusText.textContent = savedFocus;
+    setText('focus-text', savedFocus);
   }
 
   document.getElementById('edit-focus')?.addEventListener('click', () => {
     const newFocus = prompt('What is your focus for today?', YEET.config.focus);
-    if (newFocus !== null) {
-      YEET.config.focus = newFocus;
-      const focusText = document.getElementById('focus-text');
-      if (focusText) focusText.textContent = newFocus || 'No focus set.';
-      localStorage.setItem('yeet-focus', newFocus);
-      addLog('success', 'Focus updated');
-    }
+    if (newFocus === null) return;
+    YEET.config.focus = newFocus;
+    setText('focus-text', newFocus || 'No focus set. Use Edit to define today\'s mission.');
+    localStorage.setItem('yeet-focus', newFocus);
+    addLog('success', 'Daily focus updated');
   });
 
   initConverter();
@@ -438,7 +567,6 @@ function initDaily() {
   initTodos();
 }
 
-/* ===== CONVERTER ===== */
 function initConverter() {
   const input = document.getElementById('conv-input');
   const from = document.getElementById('conv-from');
@@ -446,31 +574,54 @@ function initConverter() {
   const result = document.getElementById('converter-result');
 
   function convert() {
-    const val = parseFloat(input?.value) || 0;
+    const value = parseFloat(input?.value) || 0;
     const fromUnit = from?.value;
     const toUnit = to?.value;
+    if (!fromUnit || !toUnit || !result) return;
 
     const toBase = {
-      km: 1000, m: 1, ft: 0.3048, mi: 1609.34,
-      kg: 1, lb: 0.453592,
-      c: 1, f: 1,
-      usd: 1, try: 0.029, eur: 1.08, gbp: 1.27
+      km: 1000,
+      m: 1,
+      ft: 0.3048,
+      mi: 1609.34,
+      kg: 1,
+      lb: 0.453592,
+      c: 1,
+      f: 1,
+      usd: 1,
+      try: 0.029,
+      eur: 1.08,
+      gbp: 1.27
     };
 
     let converted;
-    if (fromUnit === 'c' && toUnit === 'f') converted = val * 9/5 + 32;
-    else if (fromUnit === 'f' && toUnit === 'c') converted = (val - 32) * 5/9;
-    else converted = val * (toBase[fromUnit] / toBase[toUnit]);
+    if (fromUnit === 'c' && toUnit === 'f') converted = (value * 9) / 5 + 32;
+    else if (fromUnit === 'f' && toUnit === 'c') converted = ((value - 32) * 5) / 9;
+    else converted = value * (toBase[fromUnit] / toBase[toUnit]);
 
-    const symbols = { km: 'km', m: 'm', ft: 'ft', mi: 'mi', kg: 'kg', lb: 'lb', c: '°C', f: '°F', usd: '$', try: '₺', eur: '€', gbp: '£' };
+    const symbols = {
+      km: 'km',
+      m: 'm',
+      ft: 'ft',
+      mi: 'mi',
+      kg: 'kg',
+      lb: 'lb',
+      c: '°C',
+      f: '°F',
+      usd: '$',
+      try: '₺',
+      eur: '€',
+      gbp: '£'
+    };
     result.textContent = `${converted.toFixed(2)} ${symbols[toUnit] || toUnit}`;
   }
 
-  [input, from, to].forEach(el => el?.addEventListener('input', convert));
+  [input, from, to].forEach((element) => {
+    element?.addEventListener('input', convert);
+  });
   convert();
 }
 
-/* ===== BOOKMARKS ===== */
 function initBookmarks() {
   const saved = localStorage.getItem('yeet-bookmarks');
   if (saved) YEET.config.bookmarks = JSON.parse(saved);
@@ -481,11 +632,10 @@ function initBookmarks() {
     const name = prompt('Bookmark name:');
     const url = prompt('URL:');
     const icon = prompt('Emoji icon:', '🔗');
-    if (name && url) {
-      YEET.config.bookmarks.push({ name, url, icon });
-      saveConfig();
-      renderBookmarks();
-    }
+    if (!name || !url) return;
+    YEET.config.bookmarks.push({ name, url, icon });
+    saveConfig();
+    renderBookmarks();
   });
 }
 
@@ -499,40 +649,35 @@ function renderBookmarks() {
   ];
 
   const all = [...defaults, ...YEET.config.bookmarks];
-
-  list.innerHTML = all.map(b => `
+  list.innerHTML = all.map((bookmark) => `
     <div class="bookmark-item">
-      <a href="${escapeHtml(b.url)}" target="_blank" class="bookmark-link">
-        <span class="bookmark-icon">${b.icon}</span>
-        <span>${escapeHtml(b.name)}</span>
+      <a href="${escapeHtml(bookmark.url)}" target="_blank" rel="noopener noreferrer" class="bookmark-link">
+        <span class="bookmark-icon" aria-hidden="true">${bookmark.icon}</span>
+        <span>${escapeHtml(bookmark.name)}</span>
       </a>
     </div>
   `).join('');
 }
 
-/* ===== NOTES ===== */
 function initNotes() {
   const textarea = document.getElementById('quick-notes');
   const timestamp = document.getElementById('notes-timestamp');
-
   const saved = localStorage.getItem('yeet-notes');
-  if (saved && textarea) textarea.value = saved;
-
   const savedTime = localStorage.getItem('yeet-notes-time');
+
+  if (saved && textarea) textarea.value = saved;
   if (savedTime && timestamp) timestamp.textContent = `Last saved: ${savedTime}`;
 
   document.getElementById('save-notes')?.addEventListener('click', () => {
-    if (textarea) {
-      localStorage.setItem('yeet-notes', textarea.value);
-      const now = new Date().toLocaleString();
-      localStorage.setItem('yeet-notes-time', now);
-      if (timestamp) timestamp.textContent = `Last saved: ${now}`;
-      showToast('Notes saved', 'success');
-    }
+    if (!textarea) return;
+    localStorage.setItem('yeet-notes', textarea.value);
+    const now = new Date().toLocaleString();
+    localStorage.setItem('yeet-notes-time', now);
+    if (timestamp) timestamp.textContent = `Last saved: ${now}`;
+    showToast('Notes saved', 'success');
   });
 }
 
-/* ===== TODOS ===== */
 function initTodos() {
   const saved = localStorage.getItem('yeet-todos');
   if (saved) YEET.config.todos = JSON.parse(saved);
@@ -541,11 +686,10 @@ function initTodos() {
 
   document.getElementById('add-todo-btn')?.addEventListener('click', () => {
     const text = prompt('New task:');
-    if (text) {
-      YEET.config.todos.push({ id: Date.now(), text, done: false, priority: 'medium' });
-      saveConfig();
-      renderTodos();
-    }
+    if (!text) return;
+    YEET.config.todos.push({ id: Date.now(), text, done: false, priority: 'medium' });
+    saveConfig();
+    renderTodos();
   });
 }
 
@@ -554,37 +698,41 @@ function renderTodos() {
   if (!list) return;
 
   if (YEET.config.todos.length === 0) {
-    list.innerHTML = '<p class="empty-state">No tasks yet. Click + Add to get started.</p>';
+    list.innerHTML = '<p class="empty-state compact">No tasks yet. Add one to start the mission.</p>';
     return;
   }
 
-  list.innerHTML = YEET.config.todos.map(t => `
-    <div class="todo-item ${t.done ? 'done' : ''}" data-id="${t.id}">
-      <span class="todo-priority ${t.priority || 'medium'}"></span>
-      <input type="checkbox" class="todo-checkbox" ${t.done ? 'checked' : ''} onchange="toggleTodo(${t.id})">
-      <span class="todo-text" contenteditable="true" onblur="editTodo(${t.id}, this.innerText)">${escapeHtml(t.text)}</span>
-      <button class="todo-delete" onclick="deleteTodo(${t.id})">×</button>
+  list.innerHTML = YEET.config.todos.map((todo) => `
+    <div class="todo-item ${todo.done ? 'done' : ''}" data-id="${todo.id}">
+      <span class="todo-priority ${todo.priority || 'medium'}" aria-hidden="true"></span>
+      <input type="checkbox" class="todo-checkbox" ${todo.done ? 'checked' : ''} onchange="toggleTodo(${todo.id})" aria-label="Toggle task completion">
+      <span class="todo-text" contenteditable="true" onblur="editTodo(${todo.id}, this.innerText)">${escapeHtml(todo.text)}</span>
+      <button class="todo-delete" type="button" onclick="deleteTodo(${todo.id})" aria-label="Delete task">×</button>
     </div>
   `).join('');
 }
 
-window.toggleTodo = function(id) {
-  const t = YEET.config.todos.find(x => x.id === id);
-  if (t) { t.done = !t.done; saveConfig(); renderTodos(); }
-};
-
-window.editTodo = function(id, text) {
-  const t = YEET.config.todos.find(x => x.id === id);
-  if (t) { t.text = text.trim(); saveConfig(); }
-};
-
-window.deleteTodo = function(id) {
-  YEET.config.todos = YEET.config.todos.filter(x => x.id !== id);
+window.toggleTodo = function toggleTodo(id) {
+  const todo = YEET.config.todos.find((item) => item.id === id);
+  if (!todo) return;
+  todo.done = !todo.done;
   saveConfig();
   renderTodos();
 };
 
-/* ===== NETWORK MONITORING ===== */
+window.editTodo = function editTodo(id, text) {
+  const todo = YEET.config.todos.find((item) => item.id === id);
+  if (!todo) return;
+  todo.text = text.trim();
+  saveConfig();
+};
+
+window.deleteTodo = function deleteTodo(id) {
+  YEET.config.todos = YEET.config.todos.filter((item) => item.id !== id);
+  saveConfig();
+  renderTodos();
+};
+
 async function checkNetworkStatus() {
   const services = [
     { name: 'OpenClaw Gateway', url: 'http://localhost:3000', status: 'unknown' },
@@ -601,7 +749,7 @@ async function checkNetworkStatus() {
       await fetch(service.url, { signal: controller.signal, mode: 'no-cors' });
       clearTimeout(timeout);
       service.status = 'online';
-    } catch (err) {
+    } catch (error) {
       service.status = 'offline';
     }
   }));
@@ -613,70 +761,163 @@ function renderNetworkStatus(services) {
   const container = document.getElementById('network-status');
   if (!container) return;
 
-  container.innerHTML = services.map(s => `
-    <div class="service-item ${s.status}">
-      <span class="service-dot"></span>
-      <span class="service-name">${escapeHtml(s.name)}</span>
-      <span class="service-status">${s.status}</span>
+  const online = services.filter((service) => service.status === 'online').length;
+  const offline = services.length - online;
+
+  container.innerHTML = services.map((service) => `
+    <div class="service-item ${service.status}">
+      <div class="service-main">
+        <span class="service-dot" aria-hidden="true"></span>
+        <span class="service-name">${escapeHtml(service.name)}</span>
+      </div>
+      <div class="service-meta">
+        <span class="service-endpoint">${escapeHtml(service.url.replace(/^https?:\/\//, ''))}</span>
+        <span class="service-status">${service.status}</span>
+      </div>
     </div>
   `).join('');
+
+  setText('services-online-count', `${online} online`);
+  setText('services-offline-count', `${offline} offline`);
+  setText('services-total-count', String(services.length));
+  setText('services-summary-online', String(online));
+  setText('services-summary-offline', String(offline));
+  setText('services-summary-status', offline > 0 ? 'Attention required' : 'Nominal');
 }
 
-/* ===== SYSTEM DETECTION ===== */
 function detectSystem() {
   YEET.state.platform = navigator.platform || 'unknown';
   YEET.state.hostname = window.location.hostname || 'localhost';
 
-  document.getElementById('hostname').textContent = YEET.state.hostname;
-  document.getElementById('platform').textContent = YEET.state.platform;
+  setText('hostname', YEET.state.hostname);
+  setText('platform', YEET.state.platform);
+  setText('header-hostname', YEET.state.hostname);
+  setText('header-platform', YEET.state.platform);
 }
 
-/* ===== LOGS ===== */
-function pushLog(level, message) {
-  if (YEET.state.isPaused) return;
-
-  const entry = {
-    time: new Date().toLocaleTimeString(),
-    level,
-    message
-  };
-
-  YEET.state.logs.unshift(entry);
-  if (YEET.state.logs.length > 100) YEET.state.logs.pop();
-
+function initLogs() {
   renderLogs();
-}
 
-function renderLogs() {
-  const viewer = document.getElementById('log-viewer');
-  if (!viewer) return;
-  const code = viewer.querySelector('code');
-  if (!code) return;
-
-  code.innerHTML = YEET.state.logs.map(l => `
-    <div class="log-entry">
-      <span class="log-timestamp">${l.time}</span>
-      <span class="log-level-${l.level}">[${l.level.toUpperCase()}]</span>
-      ${escapeHtml(l.message)}
-    </div>
-  `).join('');
-}
-
-/* ===== LOG CONTROLS ===== */
-document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('pause-logs')?.addEventListener('click', () => {
     YEET.state.isPaused = !YEET.state.isPaused;
-    const btn = document.getElementById('pause-logs');
-    if (btn) btn.textContent = YEET.state.isPaused ? '▶️ Resume' : '⏸️ Pause';
-    addLog('info', YEET.state.isPaused ? 'Log feed paused' : 'Log feed resumed');
+    const button = document.getElementById('pause-logs');
+    if (button) {
+      button.textContent = YEET.state.isPaused ? 'Resume' : 'Pause';
+      button.setAttribute('aria-pressed', String(YEET.state.isPaused));
+    }
+    showToast(YEET.state.isPaused ? 'Log feed paused' : 'Log feed resumed', 'info');
+    if (!YEET.state.isPaused) addLog('info', 'Log feed resumed');
   });
 
   document.getElementById('clear-logs')?.addEventListener('click', () => {
     YEET.state.logs = [];
     renderLogs();
+    renderAlertFeed();
     addLog('info', 'Logs cleared');
   });
-});
 
-// Expose addLog globally for modules
+  document.getElementById('log-search')?.addEventListener('input', (event) => {
+    YEET.state.logFilter = event.target.value.trim().toLowerCase();
+    renderLogs();
+  });
+}
+
+function pushLog(level, message) {
+  if (YEET.state.isPaused) return;
+
+  YEET.state.logs.unshift({
+    time: new Date().toLocaleTimeString('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    }),
+    level,
+    message
+  });
+
+  if (YEET.state.logs.length > 150) YEET.state.logs.pop();
+  renderLogs();
+  renderAlertFeed();
+}
+
+function renderLogs() {
+  const viewer = document.getElementById('log-viewer');
+  if (!viewer) return;
+
+  const filter = (YEET.state.logFilter || '').toLowerCase();
+  const logs = YEET.state.logs.filter((log) => {
+    if (!filter) return true;
+    return `${log.time} ${log.level} ${log.message}`.toLowerCase().includes(filter);
+  });
+
+  setText('log-count', `${logs.length} entr${logs.length === 1 ? 'y' : 'ies'}`);
+
+  if (logs.length === 0) {
+    viewer.innerHTML = '<p class="empty-state compact">No log entries match the current filter.</p>';
+    return;
+  }
+
+  viewer.innerHTML = logs.map((log) => `
+    <div class="log-entry level-${log.level}">
+      <span class="log-entry-marker" aria-hidden="true"></span>
+      <div class="log-entry-main">
+        <div class="log-entry-topline">
+          <span class="log-timestamp">${log.time}</span>
+          <span class="log-level-badge">${log.level.toUpperCase()}</span>
+        </div>
+        <div class="log-message">${escapeHtml(log.message)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderAlertFeed() {
+  const feed = document.getElementById('alert-feed');
+  if (!feed) return;
+
+  const recent = YEET.state.logs.slice(0, 4);
+  updateAlertCount();
+
+  if (recent.length === 0) {
+    feed.innerHTML = '<p class="empty-state compact">No operational events yet.</p>';
+    return;
+  }
+
+  feed.innerHTML = recent.map((entry) => `
+    <article class="alert-item ${entry.level}">
+      <div class="alert-pill">${entry.level.toUpperCase()}</div>
+      <div class="alert-copy">
+        <strong>${entry.time}</strong>
+        <span>${escapeHtml(entry.message)}</span>
+      </div>
+    </article>
+  `).join('');
+}
+
+function updateAlertCount() {
+  const alerts = YEET.state.logs.filter((entry) => entry.level === 'warn' || entry.level === 'error').length;
+  setText('alert-count', String(alerts));
+}
+
+function setText(id, value) {
+  const element = document.getElementById(id);
+  if (element) element.textContent = value;
+}
+
+function titleCase(value) {
+  if (!value) return '';
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function pseudoMetric(seed, min, max) {
+  let hash = 0;
+  for (let index = 0; index < seed.length; index += 1) {
+    hash = ((hash << 5) - hash) + seed.charCodeAt(index);
+    hash |= 0;
+  }
+  const range = max - min;
+  return min + (Math.abs(hash) % (range + 1));
+}
+
 window.addLog = pushLog;

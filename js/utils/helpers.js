@@ -53,8 +53,8 @@ export function getWeatherEmoji(condition) {
 export function setGauge(gaugeId, valueId, percent) {
   const gauge = document.getElementById(gaugeId);
   const value = document.getElementById(valueId);
-  if (gauge) gauge.style.setProperty('--value', percent);
-  if (value) value.textContent = percent + '%';
+  if (gauge) gauge.style.setProperty('--value', `${percent}%`);
+  if (value) value.textContent = `${percent}%`;
 }
 
 /* ===== Simple Cache ===== */
@@ -92,11 +92,14 @@ export function showToast(message, type = 'info') {
   if (!container) {
     container = document.createElement('div');
     container.className = 'toast-container';
+    container.setAttribute('aria-live', 'polite');
+    container.setAttribute('aria-atomic', 'true');
     document.body.appendChild(container);
   }
 
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
+  toast.setAttribute('role', 'status');
   toast.textContent = message;
   container.appendChild(toast);
 
@@ -112,24 +115,27 @@ export function createModal(title, fields, onSubmit) {
 
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
+  overlay.setAttribute('role', 'presentation');
+
+  const dialogTitleId = 'modal-title';
 
   const inputsHtml = fields.map(f => `
-    <label>${f.label}</label>
+    <label for="${f.id}">${escapeHtml(f.label)}</label>
     ${f.type === 'textarea'
-      ? `<textarea id="${f.id}" rows="3">${f.value || ''}</textarea>`
-      : `<input type="${f.type}" id="${f.id}" value="${f.value || ''}">`
+      ? `<textarea id="${f.id}" rows="3">${escapeHtml(f.value || '')}</textarea>`
+      : `<input type="${f.type}" id="${f.id}" value="${escapeHtml(f.value || '')}">`
     }
   `).join('');
 
   overlay.innerHTML = `
-    <div class="modal">
-      <h3>${escapeHtml(title)}</h3>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="${dialogTitleId}">
+      <h3 id="${dialogTitleId}">${escapeHtml(title)}</h3>
       <div class="modal-form">
         ${inputsHtml}
       </div>
       <div class="modal-actions">
-        <button class="btn" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
-        <button class="btn btn-primary" id="modal-confirm">Save</button>
+        <button class="btn" type="button" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+        <button class="btn btn-primary" type="button" id="modal-confirm">Save</button>
       </div>
     </div>
   `;

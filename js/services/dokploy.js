@@ -27,33 +27,105 @@ export async function fetchDokployProjects() {
 export async function loadDokployData() {
   try {
     const projects = await fetchDokployProjects();
+    renderDokploySummary(projects);
     renderDokployProjects(projects);
     addLog('info', `Loaded ${projects.length} Dokploy projects`);
   } catch (err) {
+    renderDokploySummary([]);
+    renderDokployError();
     addLog('error', `Dokploy load failed: ${err.message}`);
   }
+}
+
+function renderDokploySummary(projects) {
+  const summary = document.getElementById('dokploy-stats');
+  if (!summary) return;
+
+  const totals = projects.reduce((acc, project) => {
+    const env = project.environments?.[0] || {};
+    acc.apps += env.applications?.length || 0;
+    acc.databases +=
+      (env.postgres?.length || 0) +
+      (env.mysql?.length || 0) +
+      (env.mariadb?.length || 0) +
+      (env.mongo?.length || 0) +
+      (env.redis?.length || 0);
+    return acc;
+  }, { apps: 0, databases: 0 });
+
+  const activeProjects = projects.filter((project) => (project.environments?.[0]?.applications?.length || 0) > 0).length;
+
+  summary.innerHTML = `
+    <div class="stat-chip">
+      <span>Projects</span>
+      <strong>${projects.length}</strong>
+    </div>
+    <div class="stat-chip">
+      <span>Active</span>
+      <strong>${activeProjects}</strong>
+    </div>
+    <div class="stat-chip">
+      <span>Apps</span>
+      <strong>${totals.apps}</strong>
+    </div>
+    <div class="stat-chip">
+      <span>Databases</span>
+      <strong>${totals.databases}</strong>
+    </div>
+  `;
 }
 
 function renderDokployProjects(projects) {
   const container = document.getElementById('dokploy-projects');
   if (!container) return;
 
-  container.innerHTML = projects.map(p => {
-    const env = p.environments?.[0] || {};
+  if (projects.length === 0) {
+    container.innerHTML = '<p class="empty-state">No Dokploy projects returned.</p>';
+    return;
+  }
+
+  container.innerHTML = projects.map((project) => {
+    const env = project.environments?.[0] || {};
     const apps = env.applications?.length || 0;
-    const dbs = (env.postgres?.length || 0) + (env.mysql?.length || 0) + (env.mariadb?.length || 0) + (env.mongo?.length || 0) + (env.redis?.length || 0);
+    const databases =
+      (env.postgres?.length || 0) +
+      (env.mysql?.length || 0) +
+      (env.mariadb?.length || 0) +
+      (env.mongo?.length || 0) +
+      (env.redis?.length || 0);
+    const environments = project.environments?.length || 0;
+    const active = apps > 0;
 
     return `
-      <div class="dokploy-project">
+      <article class="dokploy-project">
         <div class="dp-header">
-          <span class="dp-name">${escapeHtml(p.name)}</span>
-          <span class="dp-status ${apps > 0 ? 'active' : 'empty'}">${apps > 0 ? '● Active' : '○ Empty'}</span>
+          <div>
+            <span class="dp-kicker">Dokploy Project</span>
+            <span class="dp-name">${escapeHtml(project.name)}</span>
+          </div>
+          <span class="dp-status ${active ? 'active' : 'empty'}">${active ? 'Active' : 'Idle'}</span>
         </div>
-        <div class="dp-meta">
-          <span>🚀 ${apps} apps</span>
-          <span>🗄️ ${dbs} databases</span>
+        <div class="dp-meta-grid">
+          <div class="dp-stat">
+            <span>Environments</span>
+            <strong>${environments}</strong>
+          </div>
+          <div class="dp-stat">
+            <span>Apps</span>
+            <strong>${apps}</strong>
+          </div>
+          <div class="dp-stat">
+            <span>Databases</span>
+            <strong>${databases}</strong>
+          </div>
         </div>
-      </div>
+      </article>
     `;
   }).join('');
+}
+
+function renderDokployError() {
+  const container = document.getElementById('dokploy-projects');
+  if (!container) return;
+  container.innerHTML = '<div class="inline-alert error">Dokploy data is unavailable through the proxy.</div>';
 }

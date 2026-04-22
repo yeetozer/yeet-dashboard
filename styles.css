@@ -126,6 +126,84 @@ button, input, select, textarea { font: inherit; }
   margin-bottom: 6px;
 }
 
+.page-description {
+  margin-top: 10px;
+  color: var(--text-secondary);
+  max-width: 56ch;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.summary-tile {
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(8, 13, 24, 0.55);
+  border: 1px solid rgba(111, 148, 201, 0.14);
+}
+
+.summary-label {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.summary-tile strong {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+}
+
+.services-footer,
+.toolbar-actions,
+.project-layout {
+  display: flex;
+  gap: 12px;
+}
+
+.services-footer {
+  margin-top: 14px;
+  color: var(--text-secondary);
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.toolbar-actions {
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.project-layout {
+  align-items: start;
+}
+
+.project-layout > .card {
+  min-width: 0;
+}
+
+.project-layout > .projects-grid {
+  flex: 2;
+}
+
+.project-layout > .card {
+  flex: 1;
+}
+
+.project-summary-grid {
+  margin-bottom: 20px;
+}
+
+.log-controls input {
+  min-width: 180px;
+}
+
 .sidebar-panel,
 .sidebar-footer-card {
   border-radius: var(--radius-md);

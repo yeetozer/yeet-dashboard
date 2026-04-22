@@ -66,6 +66,7 @@
                         <p class="eyebrow">Operations deck</p>
                         <h2 id="page-title">Overview</h2>
                         <span class="greeting" id="greeting">Hello!</span>
+                        <p class="page-description" id="page-description">Operational dashboard section</p>
                     </div>
                 </div>
                 <div class="header-center" aria-label="System summary">
@@ -76,6 +77,26 @@
                     <div class="header-stat">
                         <span class="header-stat-label">Zone</span>
                         <strong>Europe/Istanbul</strong>
+                    </div>
+                    <div class="header-stat">
+                        <span class="header-stat-label">Host</span>
+                        <strong id="header-hostname">--</strong>
+                    </div>
+                    <div class="header-stat">
+                        <span class="header-stat-label">Platform</span>
+                        <strong id="header-platform">--</strong>
+                    </div>
+                    <div class="header-stat">
+                        <span class="header-stat-label">Date</span>
+                        <strong id="header-date">--</strong>
+                    </div>
+                    <div class="header-stat">
+                        <span class="header-stat-label">Time</span>
+                        <strong id="header-time">--:--:--</strong>
+                    </div>
+                    <div class="header-stat">
+                        <span class="header-stat-label">Refresh</span>
+                        <strong id="refresh-cycle">30s auto</strong>
                     </div>
                     <div class="header-stat">
                         <span class="header-stat-label">Updated</span>
@@ -114,6 +135,12 @@
                             </div>
                             <span class="badge badge-info" id="session-count">0</span>
                         </div>
+                        <div class="summary-grid mission-summary">
+                            <div class="summary-tile"><span class="summary-label">Active Sessions</span><strong id="summary-active-sessions">0</strong></div>
+                            <div class="summary-tile"><span class="summary-label">Models</span><strong id="summary-model-count">0</strong></div>
+                            <div class="summary-tile"><span class="summary-label">Running Projects</span><strong id="summary-running-projects">0</strong></div>
+                            <div class="summary-tile"><span class="summary-label">Tracked Projects</span><strong id="summary-total-projects">0</strong></div>
+                        </div>
                         <div class="card-body" id="sessions-list">
                             <div class="skeleton-list" aria-hidden="true">
                                 <span class="skeleton-line short"></span>
@@ -131,6 +158,12 @@
                                 <h3>Services</h3>
                             </div>
                         </div>
+                        <div class="summary-grid service-summary-grid">
+                            <div class="summary-tile"><span class="summary-label">Online</span><strong id="services-summary-online">0</strong></div>
+                            <div class="summary-tile"><span class="summary-label">Offline</span><strong id="services-summary-offline">0</strong></div>
+                            <div class="summary-tile"><span class="summary-label">Total</span><strong id="services-total-count">0</strong></div>
+                            <div class="summary-tile"><span class="summary-label">State</span><strong id="services-summary-status">Nominal</strong></div>
+                        </div>
                         <div class="card-body">
                             <div id="network-status" class="services-list" aria-live="polite">
                                 <div class="skeleton-list" aria-hidden="true">
@@ -139,6 +172,10 @@
                                     <span class="skeleton-line short"></span>
                                 </div>
                                 <div class="loading">Checking services...</div>
+                            </div>
+                            <div class="services-footer">
+                                <span id="services-online-count">0 online</span>
+                                <span id="services-offline-count">0 offline</span>
                             </div>
                         </div>
                     </article>
@@ -176,6 +213,19 @@
                 </div>
 
                 <div class="cards-grid">
+                    <article class="card">
+                        <div class="card-header">
+                            <div>
+                                <span class="card-kicker">Watchlist</span>
+                                <h3>Alert Feed</h3>
+                            </div>
+                            <span class="badge badge-info" id="alert-count">0</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="activity-feed" id="alert-feed"></div>
+                        </div>
+                    </article>
+
                     <article class="card full-width">
                         <div class="card-header">
                             <div>
@@ -256,7 +306,7 @@
             </section>
 
             <section class="tab-content" id="logs" aria-label="Logs tab">
-                <article class="card full-width"><div class="card-header"><div><span class="card-kicker">Runtime trail</span><h3>OpenClaw Logs</h3></div><div class="log-controls"><button class="btn btn-sm" id="pause-logs">⏸️ Pause</button><button class="btn btn-sm" id="clear-logs">🗑️ Clear</button></div></div><div class="card-body"><pre class="log-viewer" id="log-viewer"><code>Loading logs...</code></pre></div></article>
+                <article class="card full-width"><div class="card-header"><div><span class="card-kicker">Runtime trail</span><h3>OpenClaw Logs</h3></div><div class="log-controls"><input type="search" id="log-search" placeholder="Filter logs" aria-label="Filter logs"><span class="badge badge-info" id="log-count">0</span><button class="btn btn-sm" id="pause-logs">⏸️ Pause</button><button class="btn btn-sm" id="clear-logs">🗑️ Clear</button></div></div><div class="card-body"><pre class="log-viewer" id="log-viewer"><code>Loading logs...</code></pre></div></article>
             </section>
 
             <section class="tab-content" id="terminal" aria-label="Terminal tab">
@@ -282,8 +332,17 @@
             </section>
 
             <section class="tab-content" id="projects" aria-label="Projects tab">
-                <div class="projects-header"><div><p class="eyebrow">Build portfolio</p><h3>Your Projects</h3></div><button class="btn btn-primary" id="add-project-btn">+ Add Project</button></div>
-                <div class="projects-grid" id="projects-grid"></div>
+                <div class="projects-header"><div><p class="eyebrow">Build portfolio</p><h3>Your Projects</h3></div><div class="toolbar-actions"><span class="notes-timestamp" id="projects-last-sync">Awaiting sync</span><button class="btn btn-primary" id="add-project-btn">+ Add Project</button></div></div>
+                <div class="summary-grid mission-summary project-summary-grid">
+                    <div class="summary-tile"><span class="summary-label">Overview Cards</span><strong id="overview-project-count">0</strong></div>
+                    <div class="summary-tile"><span class="summary-label">Running</span><strong id="projects-running-count">0</strong></div>
+                    <div class="summary-tile"><span class="summary-label">Stopped</span><strong id="projects-stopped-count">0</strong></div>
+                    <div class="summary-tile"><span class="summary-label">Dirty</span><strong id="projects-dirty-count">0</strong></div>
+                </div>
+                <div class="cards-grid project-layout">
+                    <article class="card"><div class="card-header"><div><span class="card-kicker">Mission shortlist</span><h3>Project Overview</h3></div></div><div class="card-body"><div class="activity-feed" id="project-overview-list"></div></div></article>
+                    <div class="projects-grid" id="projects-grid"></div>
+                </div>
             </section>
 
             <section class="tab-content" id="settings" aria-label="Settings tab">

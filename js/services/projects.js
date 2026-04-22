@@ -5,8 +5,9 @@ import { escapeHtml, showToast, createModal, addLog } from '../utils/helpers.js'
 
 export function initProjects() {
   const saved = localStorage.getItem('yeet-projects');
-  if (saved) YEET.config.projects = JSON.parse(saved);
-  else {
+  if (saved) {
+    YEET.config.projects = JSON.parse(saved);
+  } else {
     YEET.config.projects = [
       { id: '1', name: 'OpenClaw Core', description: 'Main agent workspace', path: '~/.openclaw/workspace', tags: ['agent', 'core'], gitStatus: 'clean', lastCommit: '2 days ago' },
       { id: '2', name: 'Yeet Dashboard', description: 'This dashboard', path: 'mission-control/', tags: ['frontend', 'dashboard'], gitStatus: 'modified', lastCommit: '5 hours ago' },
@@ -23,7 +24,6 @@ export function initProjects() {
   }
 
   renderProjects();
-
   document.getElementById('add-project-btn')?.addEventListener('click', showAddProjectModal);
 }
 
@@ -32,150 +32,168 @@ export function renderProjects() {
   if (!grid) return;
 
   if (YEET.config.projects.length === 0) {
-    grid.innerHTML = '<p class="empty-state">No projects yet. Click + Add Project to get started.</p>';
+    grid.innerHTML = '<p class="empty-state">No projects yet. Click Add Project to get started.</p>';
     return;
   }
 
-  grid.innerHTML = YEET.config.projects.map(p => {
-    const isSystem = p.tags?.includes('fullstack');
-    let subProjects = '';
+  grid.innerHTML = YEET.config.projects.map((project) => {
+    const isSystem = project.tags?.includes('fullstack');
+    const isRunning = project.status === 'running';
+    const gitStatus = project.gitStatus || 'unknown';
+    const gitIcon = gitStatus === 'clean'
+      ? '✓'
+      : gitStatus === 'modified'
+        ? '!'
+        : gitStatus === 'ahead'
+          ? '↑'
+          : gitStatus === 'behind'
+            ? '↓'
+            : '?';
 
+    let subProjects = '';
     if (isSystem) {
-      if (p.name.includes('Fadeolog')) {
+      if (project.name.includes('Fadeolog')) {
         subProjects = `
-          <div class="project-sub">
-            <div class="sub-item"><span class="sub-dot frontend"></span><span>Frontend: Next.js (Port 3000)</span></div>
-            <div class="sub-item"><span class="sub-dot backend"></span><span>Backend: Django API (Port 8000)</span></div>
-          </div>`;
-      } else if (p.name.includes('Yigit Map')) {
+          <div class="project-subgrid">
+            <div class="sub-item"><span class="sub-dot frontend"></span><span>Frontend: Next.js on port 3000</span></div>
+            <div class="sub-item"><span class="sub-dot backend"></span><span>Backend: Django API on port 8000</span></div>
+          </div>
+        `;
+      } else if (project.name.includes('Yigit Map')) {
         subProjects = `
-          <div class="project-sub">
+          <div class="project-subgrid">
             <div class="sub-item"><span class="sub-dot frontend"></span><span>Web: Next.js + Leaflet</span></div>
             <div class="sub-item"><span class="sub-dot backend"></span><span>Mobile: Expo + MapLibre</span></div>
-          </div>`;
+          </div>
+        `;
       }
     }
 
-    const gitStatusColor = p.gitStatus === 'clean' ? 'var(--accent-green)' :
-                            p.gitStatus === 'modified' ? 'var(--accent-yellow)' :
-                            p.gitStatus === 'ahead' ? 'var(--accent-blue)' :
-                            p.gitStatus === 'behind' ? 'var(--accent-orange)' : 'var(--text-muted)';
-    const gitStatusIcon = p.gitStatus === 'clean' ? '✓' :
-                          p.gitStatus === 'modified' ? '!' :
-                          p.gitStatus === 'ahead' ? '↑' :
-                          p.gitStatus === 'behind' ? '↓' : '?';
-
-    const isRunning = p.status === 'running';
-    const statusColor = isRunning ? 'var(--accent-green)' : 'var(--text-muted)';
-    const statusText = isRunning ? '●' : '○';
-
     return `
-    <div class="project-card ${isSystem ? 'system-card' : ''}" data-id="${p.id}">
-      <div class="project-header">
-        <h4>${escapeHtml(p.name)}</h4>
-        <div class="project-health" title="Git: ${p.gitStatus} | Last commit: ${p.lastCommit}">
-          <span class="git-status" style="color: ${gitStatusColor}">${gitStatusIcon} ${p.gitStatus}</span>
-          <span class="last-commit">${p.lastCommit}</span>
+      <article class="project-card ${isSystem ? 'system-card' : ''}" data-id="${project.id}">
+        <div class="project-card-top">
+          <div class="project-card-copy">
+            <span class="project-kicker">${isSystem ? 'Full stack system' : 'Tracked repository'}</span>
+            <h4>${escapeHtml(project.name)}</h4>
+            <p>${escapeHtml(project.description || '')}</p>
+          </div>
+          <div class="project-health">
+            <span class="project-health-pill ${isRunning ? 'running' : 'stopped'}">${isRunning ? 'Running' : 'Stopped'}</span>
+            <span class="project-health-pill git-${gitStatus}">${gitIcon} ${gitStatus}</span>
+          </div>
         </div>
-      </div>
-      <div class="project-status-bar">
-        <span class="status-indicator" style="color: ${statusColor}" title="${isRunning ? 'Running on port ' + p.port : 'Stopped'}">
-          ${statusText} ${isRunning ? 'Port ' + p.port : 'Stopped'}
-        </span>
-        ${isRunning ? `
-          <button class="btn btn-sm btn-stop" onclick="toggleProjectStatus('${p.id}')">⏹ Stop</button>
-          <a href="http://localhost:${p.port}" target="_blank" class="btn btn-sm">↗ Open</a>
-        ` : `
-          <button class="btn btn-sm btn-start" onclick="toggleProjectStatus('${p.id}')">▶ Start</button>
-        `}
-      </div>
-      <p>${escapeHtml(p.description || '')}</p>
-      ${subProjects}
-      <div class="project-resources">
-        <div class="resource-bar">
-          <span class="resource-label">CPU</span>
-          <div class="resource-track"><div class="resource-fill" style="width: ${p.cpu || 0}%; background: ${(p.cpu || 0) > 80 ? 'var(--accent-red)' : (p.cpu || 0) > 60 ? 'var(--accent-yellow)' : 'var(--accent-green)'}"></div></div>
-          <span class="resource-value">${p.cpu || 0}%</span>
+
+        <div class="project-telemetry">
+          <div class="project-inline-metric">
+            <span>Port</span>
+            <strong>${project.port || '—'}</strong>
+          </div>
+          <div class="project-inline-metric">
+            <span>Last Commit</span>
+            <strong>${escapeHtml(project.lastCommit || '—')}</strong>
+          </div>
+          <div class="project-inline-metric">
+            <span>Path</span>
+            <strong title="${escapeHtml(project.path || '')}">${escapeHtml(project.path || '—')}</strong>
+          </div>
         </div>
-        <div class="resource-bar">
-          <span class="resource-label">MEM</span>
-          <div class="resource-track"><div class="resource-fill" style="width: ${p.mem || 0}%; background: ${(p.mem || 0) > 80 ? 'var(--accent-red)' : (p.mem || 0) > 60 ? 'var(--accent-yellow)' : 'var(--accent-green)'}"></div></div>
-          <span class="resource-value">${p.mem || 0}%</span>
+
+        ${subProjects}
+
+        <div class="project-resources">
+          <div class="resource-bar">
+            <span class="resource-label">CPU</span>
+            <div class="resource-track">
+              <div class="resource-fill" style="width: ${project.cpu || 0}%; background: ${resourceColor(project.cpu || 0)}"></div>
+            </div>
+            <span class="resource-value">${Math.round(project.cpu || 0)}%</span>
+          </div>
+          <div class="resource-bar">
+            <span class="resource-label">MEM</span>
+            <div class="resource-track">
+              <div class="resource-fill" style="width: ${project.mem || 0}%; background: ${resourceColor(project.mem || 0)}"></div>
+            </div>
+            <span class="resource-value">${Math.round(project.mem || 0)}%</span>
+          </div>
         </div>
-      </div>
-      <div class="project-tags">${(p.tags || []).map(t => `<span class="project-tag tag-${t}">${t}</span>`).join('')}</div>
-      <div class="project-meta"><span>${escapeHtml(p.path || '')}</span></div>
-      <div class="project-actions">
-        <button class="btn btn-sm" onclick="openProjectFolder('${p.id}')" title="Open Folder">📁</button>
-        <button class="btn btn-sm" onclick="openProjectGithub('${p.id}')" title="GitHub">🐙</button>
-        <button class="btn btn-sm" onclick="editProject('${p.id}')">Edit</button>
-        <button class="btn btn-sm" onclick="deleteProject('${p.id}')" style="color: var(--accent-red);">Delete</button>
-      </div>
-    </div>`;
+
+        <div class="project-tags">${(project.tags || []).map((tag) => `<span class="project-tag tag-${escapeHtml(tag)}">${escapeHtml(tag)}</span>`).join('')}</div>
+
+        <div class="project-actions">
+          <button class="btn btn-sm ${isRunning ? 'btn-stop' : 'btn-start'}" type="button" onclick="toggleProjectStatus('${project.id}')">
+            ${isRunning ? 'Stop' : 'Start'}
+          </button>
+          ${project.port ? `<a href="http://localhost:${project.port}" target="_blank" rel="noopener noreferrer" class="btn btn-sm">Open</a>` : ''}
+          <button class="btn btn-sm" type="button" onclick="openProjectFolder('${project.id}')" aria-label="Open project folder">Folder</button>
+          <button class="btn btn-sm" type="button" onclick="openProjectGithub('${project.id}')" aria-label="Open project GitHub link">GitHub</button>
+          <button class="btn btn-sm" type="button" onclick="editProject('${project.id}')">Edit</button>
+          <button class="btn btn-sm btn-danger" type="button" onclick="deleteProject('${project.id}')">Delete</button>
+        </div>
+      </article>
+    `;
   }).join('');
 }
 
-/* ===== TOGGLE PROJECT STATUS (FIXED) ===== */
-window.toggleProjectStatus = function(id) {
-  const p = YEET.config.projects.find(x => x.id === id);
-  if (!p) return;
+window.toggleProjectStatus = function toggleProjectStatus(id) {
+  const project = YEET.config.projects.find((item) => item.id === id);
+  if (!project) return;
 
-  // Toggle status
-  p.status = p.status === 'running' ? 'stopped' : 'running';
-
-  // Reset or set mock metrics
-  if (p.status === 'running') {
-    p.cpu = Math.floor(Math.random() * 20) + 5;
-    p.mem = Math.floor(Math.random() * 15) + 3;
-    showToast(`${p.name} started on port ${p.port}`, 'success');
+  project.status = project.status === 'running' ? 'stopped' : 'running';
+  if (project.status === 'running') {
+    project.cpu = Math.floor(Math.random() * 20) + 5;
+    project.mem = Math.floor(Math.random() * 15) + 3;
+    showToast(`${project.name} started${project.port ? ` on port ${project.port}` : ''}`, 'success');
   } else {
-    p.cpu = 0;
-    p.mem = 0;
-    showToast(`${p.name} stopped`, 'info');
+    project.cpu = 0;
+    project.mem = 0;
+    showToast(`${project.name} stopped`, 'info');
   }
 
   saveConfig();
   renderProjects();
+  emitProjectsUpdated();
 };
 
-window.editProject = function(id) {
-  const p = YEET.config.projects.find(x => x.id === id);
-  if (!p) return;
+window.editProject = function editProject(id) {
+  const project = YEET.config.projects.find((item) => item.id === id);
+  if (!project) return;
 
   createModal('Edit Project', [
-    { id: 'p-name', label: 'Name', type: 'text', value: p.name },
-    { id: 'p-desc', label: 'Description', type: 'textarea', value: p.description },
-    { id: 'p-path', label: 'Path', type: 'text', value: p.path }
+    { id: 'p-name', label: 'Name', type: 'text', value: project.name },
+    { id: 'p-desc', label: 'Description', type: 'textarea', value: project.description },
+    { id: 'p-path', label: 'Path', type: 'text', value: project.path }
   ], (values) => {
-    p.name = values['p-name'] || p.name;
-    p.description = values['p-desc'] || '';
-    p.path = values['p-path'] || '';
+    project.name = values['p-name'] || project.name;
+    project.description = values['p-desc'] || '';
+    project.path = values['p-path'] || '';
     saveConfig();
     renderProjects();
+    emitProjectsUpdated();
     showToast('Project updated', 'success');
   });
 };
 
-window.deleteProject = function(id) {
-  YEET.config.projects = YEET.config.projects.filter(x => x.id !== id);
+window.deleteProject = function deleteProject(id) {
+  YEET.config.projects = YEET.config.projects.filter((item) => item.id !== id);
   saveConfig();
   renderProjects();
+  emitProjectsUpdated();
   addLog('info', 'Project deleted');
 };
 
-window.openProjectFolder = function(id) {
-  const p = YEET.config.projects.find(x => x.id === id);
-  if (!p) return;
-  addLog('info', `Opening folder: ${p.path}`);
+window.openProjectFolder = function openProjectFolder(id) {
+  const project = YEET.config.projects.find((item) => item.id === id);
+  if (!project) return;
+  addLog('info', `Opening folder: ${project.path}`);
   showToast('Opening folder...', 'info');
 };
 
-window.openProjectGithub = function(id) {
-  const p = YEET.config.projects.find(x => x.id === id);
-  if (!p) return;
-  let githubUrl = '';
+window.openProjectGithub = function openProjectGithub(id) {
+  const project = YEET.config.projects.find((item) => item.id === id);
+  if (!project) return;
 
-  switch(p.name) {
+  let githubUrl = '';
+  switch (project.name) {
     case 'Fadeolog System':
       githubUrl = 'https://github.com/yeetozer/fadeolog-frontend';
       break;
@@ -193,23 +211,22 @@ window.openProjectGithub = function(id) {
       return;
   }
 
-  if (githubUrl) {
-    window.open(githubUrl, '_blank');
-    addLog('info', `Opening GitHub: ${githubUrl}`);
-  }
+  window.open(githubUrl, '_blank');
+  addLog('info', `Opening GitHub: ${githubUrl}`);
 };
 
 export function updateProjectMetrics() {
-  YEET.config.projects.forEach(p => {
-    if (p.status === 'running') {
-      p.cpu = Math.max(1, Math.min(100, (p.cpu || 10) + (Math.random() * 10 - 5)));
-      p.mem = Math.max(1, Math.min(100, (p.mem || 5) + (Math.random() * 5 - 2.5)));
+  YEET.config.projects.forEach((project) => {
+    if (project.status === 'running') {
+      project.cpu = Math.max(1, Math.min(100, (project.cpu || 10) + (Math.random() * 10 - 5)));
+      project.mem = Math.max(1, Math.min(100, (project.mem || 5) + (Math.random() * 5 - 2.5)));
     } else {
-      p.cpu = 0;
-      p.mem = 0;
+      project.cpu = 0;
+      project.mem = 0;
     }
   });
   renderProjects();
+  emitProjectsUpdated();
 }
 
 function showAddProjectModal() {
@@ -218,16 +235,17 @@ function showAddProjectModal() {
     { id: 'p-desc', label: 'Description', type: 'textarea' },
     { id: 'p-path', label: 'Path', type: 'text' }
   ], (values) => {
-    const proj = {
+    const project = {
       id: Date.now().toString(),
       name: values['p-name'] || 'Untitled',
       description: values['p-desc'] || '',
       path: values['p-path'] || '',
       tags: []
     };
-    YEET.config.projects.push(proj);
+    YEET.config.projects.push(project);
     saveConfig();
     renderProjects();
+    emitProjectsUpdated();
     showToast('Project added', 'success');
   });
 }
@@ -246,3 +264,12 @@ function saveConfig() {
   }));
 }
 
+function emitProjectsUpdated() {
+  document.dispatchEvent(new CustomEvent('projects-updated'));
+}
+
+function resourceColor(value) {
+  if (value > 80) return 'var(--accent-red)';
+  if (value > 60) return 'var(--accent-yellow)';
+  return 'var(--accent-green)';
+}
