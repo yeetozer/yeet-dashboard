@@ -30,6 +30,9 @@
                 <li class="nav-tab" data-tab="logs">
                     <span class="tab-icon">📜</span> Logs
                 </li>
+                <li class="nav-tab" data-tab="dokploy">
+                    <span class="tab-icon">🚀</span> Dokploy
+                </li>
                 <li class="nav-tab" data-tab="github">
                     <span class="tab-icon">🐙</span> GitHub
                 </li>
@@ -401,6 +404,23 @@
                                     <span class="terminal-prompt">$</span>
                                     <input type="text" id="terminal-input" class="terminal-input" placeholder="Enter command..." autocomplete="off">
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dokploy Tab -->
+            <div class="tab-content" id="dokploy">
+                <div class="cards-grid">
+                    <div class="card full-width">
+                        <div class="card-header">
+                            <h3>Dokploy Projects</h3>
+                            <span class="badge badge-info">Live</span>
+                        </div>
+                        <div class="card-body">
+                            <div id="dokploy-projects" class="dokploy-list">
+                                <div class="loading">Loading Dokploy projects...</div>
                             </div>
                         </div>
                     </div>
