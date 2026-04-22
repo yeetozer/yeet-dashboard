@@ -3,7 +3,6 @@
 'use strict';
 
 import { YEET } from './js/config.js';
-import { loadEnv, getEnv } from './js/utils/env-loader.js';
 import {
   formatDuration,
   truncate,
@@ -16,26 +15,13 @@ import {
 } from './js/utils/helpers.js';
 import { initTerminal, appendToTerminal } from './js/components/terminal.js';
 import { loadSystemMetrics } from './js/services/system.js';
-import { loadDokployData, setDokployConfig } from './js/services/dokploy.js';
-import { loadCloudflareData, setCloudflareConfig } from './js/services/cloudflare.js';
+import { loadDokployData } from './js/services/dokploy.js';
+import { loadCloudflareData } from './js/services/cloudflare.js';
 import { loadWeather } from './js/services/weather.js';
 import { initProjects, renderProjects, updateProjectMetrics } from './js/services/projects.js';
 
 /* ===== INIT ===== */
 document.addEventListener('DOMContentLoaded', async () => {
-  // Load env tokens first
-  await loadEnv();
-
-  // Configure APIs from env (no hardcoded secrets)
-  setDokployConfig(
-    getEnv('DOKPLOY_URL', 'http://46.225.90.5:3000'),
-    getEnv('DOKPLOY_API_KEY', '')
-  );
-  setCloudflareConfig(
-    getEnv('CLOUDFLARE_TOKEN', ''),
-    getEnv('CLOUDFLARE_ZONE_ID', 'df5db7732ba13e5e52c7fad73b23de1c')
-  );
-
   initTabs();
   initSettings();
   initProjects();
@@ -192,6 +178,8 @@ function initSettings() {
     await Promise.all([
       loadWorkspaceData(),
       loadSystemMetrics(),
+      loadDokployData(),
+      loadCloudflareData(),
       loadWeather()
     ]);
     updateProjectMetrics();
@@ -220,7 +208,9 @@ function startAutoRefresh() {
     YEET.state.timerId = setInterval(() => {
       Promise.all([
         loadWorkspaceData(),
-        loadSystemMetrics()
+        loadSystemMetrics(),
+        loadDokployData(),
+        loadCloudflareData()
       ]);
       updateProjectMetrics();
       checkNetworkStatus();

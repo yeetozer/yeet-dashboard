@@ -1,38 +1,31 @@
 /* ===== CLOUDFLARE SERVICE ===== */
 
-import { CLOUDFLARE, API_BASE } from '../config.js';
+import { API_BASE } from '../config.js';
 import { cacheGet, cacheSet, escapeHtml, addLog } from '../utils/helpers.js';
 
-export function setCloudflareConfig(token, zoneId) {
-  CLOUDFLARE.token = token;
-  CLOUDFLARE.zoneId = zoneId;
-}
-
-export async function fetchCloudflare(endpoint) {
-  const cacheKey = `cf_${endpoint}`;
+export async function fetchCloudflareDns() {
+  const cacheKey = 'cf_dns_records';
   const cached = cacheGet(cacheKey);
   if (cached) return cached;
 
-  const res = await fetch(`${API_BASE.cloudflare}${endpoint}`, {
+  const res = await fetch(API_BASE.cloudflareDns, {
     headers: {
-      'Authorization': `Bearer ${CLOUDFLARE.token}`,
-      'Content-Type': 'application/json'
+      accept: 'application/json'
     }
   });
-  const data = await res.json();
-  if (!data.success) throw new Error(`Cloudflare API error: ${data.errors?.[0]?.message}`);
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || `Cloudflare API error: ${res.status}`);
+  }
 
-  cacheSet(cacheKey, data.result, 60000);
-  return data.result;
+  const data = await res.json();
+  cacheSet(cacheKey, data, 60000);
+  return data;
 }
 
 export async function loadCloudflareData() {
   try {
-    if (!CLOUDFLARE.token) {
-      addLog('warn', 'Cloudflare token not configured');
-      return;
-    }
-    const records = await fetchCloudflare(`/zones/${CLOUDFLARE.zoneId}/dns_records?per_page=100`);
+    const records = await fetchCloudflareDns();
     renderCloudflareRecords(records);
     addLog('info', `Loaded ${records.length} DNS records`);
   } catch (err) {

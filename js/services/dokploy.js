@@ -1,25 +1,24 @@
 /* ===== DOKPLOY SERVICE ===== */
 
-import { DOKPLOY } from '../config.js';
+import { API_BASE } from '../config.js';
 import { cacheGet, cacheSet, escapeHtml, addLog } from '../utils/helpers.js';
 
-export function setDokployConfig(url, apiKey) {
-  DOKPLOY.url = url;
-  DOKPLOY.apiKey = apiKey;
-}
-
-export async function fetchDokploy(endpoint) {
-  const cacheKey = `dk_${endpoint}`;
+export async function fetchDokployProjects() {
+  const cacheKey = 'dk_projects';
   const cached = cacheGet(cacheKey);
   if (cached) return cached;
 
-  const res = await fetch(`${DOKPLOY.url}/api/${endpoint}`, {
+  const res = await fetch(API_BASE.dokployProjects, {
     headers: {
-      'accept': 'application/json',
-      'x-api-key': DOKPLOY.apiKey
+      accept: 'application/json'
     }
   });
-  if (!res.ok) throw new Error(`Dokploy API error: ${res.status}`);
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || `Dokploy API error: ${res.status}`);
+  }
+
   const data = await res.json();
   cacheSet(cacheKey, data, 30000);
   return data;
@@ -27,11 +26,7 @@ export async function fetchDokploy(endpoint) {
 
 export async function loadDokployData() {
   try {
-    if (!DOKPLOY.apiKey) {
-      addLog('warn', 'Dokploy API key not configured');
-      return;
-    }
-    const projects = await fetchDokploy('project.all');
+    const projects = await fetchDokployProjects();
     renderDokployProjects(projects);
     addLog('info', `Loaded ${projects.length} Dokploy projects`);
   } catch (err) {

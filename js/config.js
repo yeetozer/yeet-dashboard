@@ -1,16 +1,5 @@
 /* ===== CONFIGURATION ===== */
 
-// API Configuration - Tokens loaded from env.js (not committed)
-export const CLOUDFLARE = {
-  token: '',
-  zoneId: ''
-};
-
-export const DOKPLOY = {
-  url: '',
-  apiKey: ''
-};
-
 export const YEET = {
   config: {
     refreshInterval: 30000,
@@ -35,8 +24,9 @@ export const YEET = {
 
 // API Base URLs
 export const API_BASE = {
-  cloudflare: 'https://api.cloudflare.com/client/v4',
-  dokploy: '/api/proxy/dokploy' // Proxied through backend
+  cloudflareDns: '/api/cloudflare/dns',
+  cloudflareZones: '/api/cloudflare/zones',
+  dokployProjects: '/api/dokploy/projects'
 };
 
 // Cache configuration

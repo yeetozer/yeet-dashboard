@@ -1,0 +1,16 @@
+{
+  "name": "yeet-dashboard-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Secure backend proxy for Yeet Dashboard",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "check": "node --check server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "helmet": "^8.1.0"
+  }
+}
