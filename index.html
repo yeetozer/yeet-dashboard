@@ -30,6 +30,9 @@
                 <li class="nav-tab" data-tab="logs">
                     <span class="tab-icon">📜</span> Logs
                 </li>
+                <li class="nav-tab" data-tab="cloudflare">
+                    <span class="tab-icon">☁️</span> Cloudflare
+                </li>
                 <li class="nav-tab" data-tab="dokploy">
                     <span class="tab-icon">🚀</span> Dokploy
                 </li>
@@ -404,6 +407,23 @@
                                     <span class="terminal-prompt">$</span>
                                     <input type="text" id="terminal-input" class="terminal-input" placeholder="Enter command..." autocomplete="off">
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cloudflare Tab -->
+            <div class="tab-content" id="cloudflare">
+                <div class="cards-grid">
+                    <div class="card full-width">
+                        <div class="card-header">
+                            <h3>DNS Records</h3>
+                            <span class="badge badge-info">yigitsolutions.com</span>
+                        </div>
+                        <div class="card-body">
+                            <div id="cloudflare-records" class="cf-records-list">
+                                <div class="loading">Loading DNS records...</div>
                             </div>
                         </div>
                     </div>

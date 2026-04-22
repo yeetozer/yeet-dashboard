@@ -24,6 +24,52 @@ const YEET = {
   }
 };
 
+/* ===== CLOUDFLARE CONFIG ===== */
+const CLOUDFLARE = {
+  token: '',
+  zoneId: 'df5db7732ba13e5e52c7fad73b23de1c'
+};
+
+/* ===== CLOUDFLARE API ===== */
+async function fetchCloudflare(endpoint) {
+  const res = await fetch(`https://api.cloudflare.com/client/v4${endpoint}`, {
+    headers: {
+      'Authorization': `Bearer ${CLOUDFLARE.token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  const data = await res.json();
+  if (!data.success) throw new Error(`Cloudflare API error: ${data.errors?.[0]?.message}`);
+  return data.result;
+}
+
+async function loadCloudflareData() {
+  try {
+    const records = await fetchCloudflare(`/zones/${CLOUDFLARE.zoneId}/dns_records?per_page=100`);
+    renderCloudflareRecords(records);
+    addLog('info', `Loaded ${records.length} DNS records`);
+  } catch (err) {
+    addLog('error', `Cloudflare load failed: ${err.message}`);
+  }
+}
+
+function renderCloudflareRecords(records) {
+  const container = document.getElementById('cloudflare-records');
+  if (!container) return;
+  
+  container.innerHTML = records.map(r => {
+    const proxied = r.proxied ? '🟡' : '⚫';
+    return `
+      <div class="cf-record">
+        <span class="cf-type">${r.type}</span>
+        <span class="cf-name">${escapeHtml(r.name)}</span>
+        <span class="cf-content">${escapeHtml(r.content)}</span>
+        <span class="cf-proxied">${proxied}</span>
+      </div>
+    `;
+  }).join('');
+}
+
 /* ===== DOKPLOY CONFIG ===== */
 const DOKPLOY = {
   url: 'http://46.225.90.5:3000',
@@ -262,10 +308,17 @@ document.addEventListener('DOMContentLoaded', () => {
   loadWorkspaceData();
   loadSystemMetrics();
   loadDokployData();
+  loadCloudflareData();
   updateProjectMetrics();
   checkNetworkStatus();
   startAutoRefresh();
   startClock();
+  
+  // Load env vars after init
+  if (typeof process !== 'undefined' && process.env?.CLOUDFLARE_TOKEN) {
+    CLOUDFLARE.token = process.env.CLOUDFLARE_TOKEN;
+  }
+}
 });
 
 /* ===== CLOCK ===== */

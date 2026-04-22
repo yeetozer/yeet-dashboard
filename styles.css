@@ -1070,6 +1070,47 @@ body {
   color: var(--text-secondary);
 }
 
+/* Cloudflare Records */
+.cf-records-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cf-record {
+  display: grid;
+  grid-template-columns: 60px 1fr 2fr 30px;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  align-items: center;
+  font-size: 13px;
+}
+
+.cf-type {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--accent-cyan);
+  text-align: center;
+}
+
+.cf-name {
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+.cf-content {
+  color: var(--text-secondary);
+  word-break: break-all;
+  font-size: 12px;
+}
+
+.cf-proxied {
+  text-align: center;
+}
+
 /* ===== MODAL ===== */
 .modal-overlay {
   position: fixed;
