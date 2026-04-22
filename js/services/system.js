@@ -1,6 +1,6 @@
 /* ===== SYSTEM METRICS SERVICE ===== */
 
-import { cacheGet, cacheSet, setGauge } from '../utils/helpers.js';
+import { cacheGet, cacheSet, setGauge, escapeHtml, addLog } from '../utils/helpers.js';
 
 export async function fetchSystemMetric(type) {
   const cacheKey = `sys_${type}`;
@@ -49,16 +49,9 @@ export async function loadSystemMetrics() {
     updateDiskGauge(diskData.used, diskData.total);
     renderProcesses(processes);
 
-    // Use the shared addLog if available, else console
-    if (typeof addLog === 'function') {
-      addLog('info', 'System metrics updated');
-    }
+    addLog('info', 'System metrics updated');
   } catch (err) {
-    if (typeof addLog === 'function') {
-      addLog('error', `Metrics failed: ${err.message}`);
-    } else {
-      console.error('Metrics failed:', err);
-    }
+    addLog('error', `Metrics failed: ${err.message}`);
   }
 }
 
@@ -140,10 +133,3 @@ function renderProcesses(processes) {
   `).join('');
 }
 
-// Provide local escapeHtml if not imported
-function escapeHtml(str) {
-  if (!str) return '';
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}

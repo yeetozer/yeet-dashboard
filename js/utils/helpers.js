@@ -24,6 +24,21 @@ export function escapeHtml(str) {
   return div.innerHTML;
 }
 
+export function formatDate(value, options = {}) {
+  if (!value) return '—';
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleString(undefined, options);
+}
+
+export function debounce(fn, wait = 250) {
+  let timeoutId;
+  return function debounced(...args) {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn.apply(this, args), wait);
+  };
+}
+
 export function getWeatherEmoji(condition) {
   const c = (condition || '').toLowerCase();
   if (c.includes('sun') || c.includes('clear')) return '☀️';
@@ -90,4 +105,60 @@ export function showToast(message, type = 'info') {
     toast.style.transform = 'translateX(20px)';
     setTimeout(() => toast.remove(), 300);
   }, 3000);
+}
+
+export function createModal(title, fields, onSubmit) {
+  document.querySelector('.modal-overlay')?.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+
+  const inputsHtml = fields.map(f => `
+    <label>${f.label}</label>
+    ${f.type === 'textarea'
+      ? `<textarea id="${f.id}" rows="3">${f.value || ''}</textarea>`
+      : `<input type="${f.type}" id="${f.id}" value="${f.value || ''}">`
+    }
+  `).join('');
+
+  overlay.innerHTML = `
+    <div class="modal">
+      <h3>${escapeHtml(title)}</h3>
+      <div class="modal-form">
+        ${inputsHtml}
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+        <button class="btn btn-primary" id="modal-confirm">Save</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  setTimeout(() => {
+    overlay.querySelector('input, textarea')?.focus();
+    overlay.classList.add('active');
+  }, 10);
+
+  document.getElementById('modal-confirm').addEventListener('click', () => {
+    const values = {};
+    fields.forEach(f => {
+      values[f.id] = document.getElementById(f.id)?.value || '';
+    });
+    overlay.remove();
+    onSubmit(values);
+  });
+
+  const esc = (e) => { if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', esc); } };
+  document.addEventListener('keydown', esc);
+
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+}
+
+export function addLog(level, message) {
+  if (typeof window.addLog === 'function') {
+    window.addLog(level, message);
+  } else {
+    console.log(`[${level.toUpperCase()}] ${message}`);
+  }
 }

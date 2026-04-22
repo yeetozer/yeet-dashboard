@@ -1,7 +1,7 @@
 /* ===== PROJECTS SERVICE ===== */
 
 import { YEET } from '../config.js';
-import { escapeHtml, showToast, createModal } from '../utils/helpers.js';
+import { escapeHtml, showToast, createModal, addLog } from '../utils/helpers.js';
 
 export function initProjects() {
   const saved = localStorage.getItem('yeet-projects');
@@ -246,10 +246,3 @@ function saveConfig() {
   }));
 }
 
-function addLog(level, message) {
-  if (typeof window.addLog === 'function') {
-    window.addLog(level, message);
-  } else {
-    console.log(`[${level.toUpperCase()}] ${message}`);
-  }
-}

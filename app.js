@@ -10,7 +10,9 @@ import {
   escapeHtml,
   setGauge,
   showToast,
-  cacheClear
+  cacheClear,
+  createModal,
+  addLog
 } from './js/utils/helpers.js';
 import { initTerminal, appendToTerminal } from './js/components/terminal.js';
 import { loadSystemMetrics } from './js/services/system.js';
@@ -630,55 +632,6 @@ function renderNetworkStatus(services) {
   `).join('');
 }
 
-/* ===== MODAL ===== */
-function createModal(title, fields, onSubmit) {
-  document.querySelector('.modal-overlay')?.remove();
-
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
-
-  const inputsHtml = fields.map(f => `
-    <label>${f.label}</label>
-    ${f.type === 'textarea'
-      ? `<textarea id="${f.id}" rows="3">${f.value || ''}</textarea>`
-      : `<input type="${f.type}" id="${f.id}" value="${f.value || ''}">`
-    }
-  `).join('');
-
-  overlay.innerHTML = `
-    <div class="modal">
-      <h3>${escapeHtml(title)}</h3>
-      <div class="modal-form">
-        ${inputsHtml}
-      </div>
-      <div class="modal-actions">
-        <button class="btn" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
-        <button class="btn btn-primary" id="modal-confirm">Save</button>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(overlay);
-  setTimeout(() => {
-    overlay.querySelector('input, textarea')?.focus();
-    overlay.classList.add('active');
-  }, 10);
-
-  document.getElementById('modal-confirm').addEventListener('click', () => {
-    const values = {};
-    fields.forEach(f => {
-      values[f.id] = document.getElementById(f.id)?.value || '';
-    });
-    overlay.remove();
-    onSubmit(values);
-  });
-
-  const esc = (e) => { if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', esc); } };
-  document.addEventListener('keydown', esc);
-
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
-}
-
 /* ===== SYSTEM DETECTION ===== */
 function detectSystem() {
   YEET.state.platform = navigator.platform || 'unknown';
@@ -689,7 +642,7 @@ function detectSystem() {
 }
 
 /* ===== LOGS ===== */
-function addLog(level, message) {
+function pushLog(level, message) {
   if (YEET.state.isPaused) return;
 
   const entry = {
@@ -736,4 +689,4 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Expose addLog globally for modules
-window.addLog = addLog;
+window.addLog = pushLog;

@@ -21,7 +21,7 @@ export async function loadWeather() {
     cacheSet(cacheKey, data, 300000); // Cache 5 min
     renderWeather(data);
   } catch (err) {
-    console.error('Weather load failed:', err);
+    addLog('error', `Weather load failed: ${err.message}`);
   }
 }
 

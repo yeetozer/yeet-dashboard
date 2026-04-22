@@ -924,10 +924,10 @@ body {
 
 .progress-fill.building {
   background: var(--accent-yellow);
-  animation: pulse 1.5s infinite;
+  animation: pulse-ring 1.5s infinite;
 }
 
-@keyframes pulse {
+@keyframes pulse-ring {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
 }
