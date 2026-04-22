@@ -371,18 +371,34 @@ function updateGreeting(now) {
 
 /* ===== TABS ===== */
 function initTabs() {
-  const tabs = document.querySelectorAll('.nav-tab');
+  const tabs = document.querySelectorAll('.nav-tab, .submenu-item');
   const contents = document.querySelectorAll('.tab-content');
 
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
       const target = tab.dataset.tab;
+      
+      // Handle submenu parent
+      if (tab.classList.contains('has-submenu')) {
+        tab.classList.toggle('active');
+        return;
+      }
+      
+      // Handle submenu items
+      if (tab.classList.contains('submenu-item')) {
+        document.querySelectorAll('.submenu-item').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+      }
 
-      tabs.forEach(t => t.classList.remove('active'));
+      tabs.forEach(t => {
+        if (!t.classList.contains('has-submenu')) {
+          t.classList.remove('active');
+        }
+      });
       contents.forEach(c => c.classList.remove('active'));
 
       tab.classList.add('active');
-      document.getElementById(target).classList.add('active');
+      document.getElementById(target)?.classList.add('active');
       document.getElementById('page-title').textContent =
         target.charAt(0).toUpperCase() + target.slice(1);
     });

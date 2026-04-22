@@ -1111,6 +1111,52 @@ body {
   text-align: center;
 }
 
+/* Submenu */
+.nav-tab.has-submenu {
+  position: relative;
+}
+
+.submenu-toggle {
+  margin-left: auto;
+  font-size: 10px;
+  transition: transform 0.2s;
+}
+
+.nav-tab.has-submenu.active .submenu-toggle {
+  transform: rotate(90deg);
+}
+
+.submenu {
+  display: none;
+  list-style: none;
+  padding: 4px 0;
+  margin: 8px 0 0 24px;
+  border-left: 2px solid var(--border-color);
+}
+
+.nav-tab.has-submenu.active .submenu {
+  display: block;
+}
+
+.submenu-item {
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: var(--transition);
+}
+
+.submenu-item:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+.submenu-item.active {
+  background: var(--bg-card);
+  color: var(--accent-cyan);
+}
+
 /* ===== MODAL ===== */
 .modal-overlay {
   position: fixed;
