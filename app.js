@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initTabs();
   initJumpButtons();
   initSettings();
-  initProjects();
+  await initProjects();
   initDaily();
   initLogs();
   initTerminal();
@@ -103,18 +103,7 @@ function updateGreeting(now) {
 }
 
 function initTabs() {
-  const serviceTrigger = document.querySelector('.nav-tab.has-submenu');
-
-  serviceTrigger?.addEventListener('click', (event) => {
-    if (event.target.closest('.submenu-item')) return;
-    if (serviceTrigger.dataset.tab === 'services') {
-      serviceTrigger.classList.toggle('active');
-      serviceTrigger.setAttribute('aria-expanded', String(serviceTrigger.classList.contains('active')));
-      return;
-    }
-  });
-
-  document.querySelectorAll('.nav-tab[data-tab]:not(.has-submenu), .submenu-item[data-tab]').forEach((trigger) => {
+  document.querySelectorAll('.nav-tab[data-tab], .submenu-item[data-tab]').forEach((trigger) => {
     trigger.addEventListener('click', () => activateTab(trigger.dataset.tab));
   });
 
@@ -345,10 +334,10 @@ async function discoverSessions() {
       return files;
     }
   } catch (error) {
-    return ['agent%3Acodex%3Aacp%3A8e648301-4795-4c10-bc19-4a1fce4a68a5.json'];
+    return ['agent:codex:acp:8e648301-4795-4c10-bc19-4a1fce4a68a5.json'];
   }
 
-  return ['agent%3Acodex%3Aacp%3A8e648301-4795-4c10-bc19-4a1fce4a68a5.json'];
+  return ['agent:codex:acp:8e648301-4795-4c10-bc19-4a1fce4a68a5.json'];
 }
 
 function renderWorkspaceState(state) {
@@ -412,19 +401,18 @@ function getSessionModels(sessions) {
     }
   });
 
-  if (models.size === 0) {
-    models.set('ollama/kimi-k2.6:cloud', { name: 'ollama/kimi-k2.6:cloud', activeSessions: 1 });
-  }
-
   return models;
 }
 
 function renderModels(sessions) {
   const models = getSessionModels(sessions);
+  const displayModels = models.size > 0
+    ? models
+    : new Map([['ollama/kimi-k2.6:cloud', { name: 'ollama/kimi-k2.6:cloud', activeSessions: 0 }]]);
   const container = document.getElementById('models-list');
   if (!container) return;
 
-  container.innerHTML = Array.from(models.values()).map((model) => `
+  container.innerHTML = Array.from(displayModels.values()).map((model) => `
     <div class="model-item">
       <div class="model-copy">
         <span class="model-name">${escapeHtml(model.name)}</span>
@@ -791,8 +779,6 @@ function detectSystem() {
 
   setText('hostname', YEET.state.hostname);
   setText('platform', YEET.state.platform);
-  setText('header-hostname', YEET.state.hostname);
-  setText('header-platform', YEET.state.platform);
 }
 
 function initLogs() {
