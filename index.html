@@ -8,351 +8,1004 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="dashboard">
-        <nav class="sidebar" aria-label="Primary navigation">
-            <div class="logo">
-                <div class="logo-mark" aria-hidden="true">
-                    <span class="logo-icon">🚀</span>
+    <div class="dashboard app-shell">
+        <aside class="sidebar mission-nav" aria-label="Primary navigation">
+            <div class="logo mission-brand">
+                <div class="brand-mark" aria-hidden="true">
+                    <span class="brand-orbit"></span>
+                    <span class="logo-icon">🛰️</span>
                 </div>
-                <div>
+                <div class="brand-copy">
                     <p class="eyebrow">Mission Control</p>
                     <h1>Yeet Dashboard</h1>
+                    <p class="brand-meta">Flight systems for Yigit's workspace</p>
                 </div>
             </div>
 
-            <div class="sidebar-panel clock-panel" aria-label="Local time panel">
-                <div class="clock-widget">
-                    <div class="clock-time" id="clock-time">--:--</div>
+            <div class="mission-nav-scroll">
+                <div class="nav-block">
+                    <p class="nav-label">Mission Deck</p>
+                    <div class="nav-tabs" role="tablist" aria-orientation="vertical" aria-label="Mission sections">
+                        <button class="nav-tab active" id="tab-overview" type="button" data-tab="overview" data-title="Overview" data-description="Gateway health, live telemetry, sessions, and current mission status." role="tab" aria-selected="true" aria-controls="overview">
+                            <span class="tab-icon" aria-hidden="true">🛰️</span>
+                            <span class="tab-copy">
+                                <strong>Overview</strong>
+                                <small>Mission snapshot</small>
+                            </span>
+                        </button>
+                        <button class="nav-tab" id="tab-daily" type="button" data-tab="daily" data-title="Daily" data-description="Personal focus, notes, weather, and quick daily utilities." role="tab" aria-selected="false" aria-controls="daily">
+                            <span class="tab-icon" aria-hidden="true">📅</span>
+                            <span class="tab-copy">
+                                <strong>Daily</strong>
+                                <small>Planning deck</small>
+                            </span>
+                        </button>
+                        <button class="nav-tab" id="tab-system" type="button" data-tab="system" data-title="System" data-description="Host telemetry, gauges, and process-level operational data." role="tab" aria-selected="false" aria-controls="system">
+                            <span class="tab-icon" aria-hidden="true">🖥️</span>
+                            <span class="tab-copy">
+                                <strong>System</strong>
+                                <small>Telemetry</small>
+                            </span>
+                        </button>
+                        <div class="nav-group services-group expanded">
+                            <button class="nav-tab has-submenu" id="tab-services" type="button" data-tab="services" data-title="Services" data-description="Service routing, deployment surfaces, and infrastructure status." role="tab" aria-selected="false" aria-controls="services">
+                                <span class="tab-icon" aria-hidden="true">🛠️</span>
+                                <span class="tab-copy">
+                                    <strong>Services</strong>
+                                    <small>Infra surfaces</small>
+                                </span>
+                            </button>
+                            <div class="submenu" aria-label="Service detail tabs">
+                                <button class="submenu-item" id="tab-cloudflare" type="button" data-tab="cloudflare" data-title="Cloudflare" data-description="DNS inventory, proxied records, and edge routing overview." role="tab" aria-selected="false" aria-controls="cloudflare">
+                                    <span aria-hidden="true">☁️</span>
+                                    <span>Cloudflare</span>
+                                </button>
+                                <button class="submenu-item" id="tab-dokploy" type="button" data-tab="dokploy" data-title="Dokploy" data-description="Application fleet health, databases, and deployment workload." role="tab" aria-selected="false" aria-controls="dokploy">
+                                    <span aria-hidden="true">🚀</span>
+                                    <span>Dokploy</span>
+                                </button>
+                            </div>
+                        </div>
+                        <button class="nav-tab" id="tab-projects" type="button" data-tab="projects" data-title="Projects" data-description="Tracked projects, git health, runtime posture, and actions." role="tab" aria-selected="false" aria-controls="projects">
+                            <span class="tab-icon" aria-hidden="true">🧩</span>
+                            <span class="tab-copy">
+                                <strong>Projects</strong>
+                                <small>Repo matrix</small>
+                            </span>
+                        </button>
+                        <button class="nav-tab" id="tab-logs" type="button" data-tab="logs" data-title="Logs" data-description="Operational event stream with filtering and control tools." role="tab" aria-selected="false" aria-controls="logs">
+                            <span class="tab-icon" aria-hidden="true">📜</span>
+                            <span class="tab-copy">
+                                <strong>Logs</strong>
+                                <small>Event stream</small>
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="nav-block">
+                    <p class="nav-label">Operations</p>
+                    <div class="nav-tabs" role="tablist" aria-orientation="vertical" aria-label="Operational sections">
+                        <button class="nav-tab" id="tab-terminal" type="button" data-tab="terminal" data-title="Terminal" data-description="Local command surface with quick mission commands." role="tab" aria-selected="false" aria-controls="terminal">
+                            <span class="tab-icon" aria-hidden="true">⌨️</span>
+                            <span class="tab-copy">
+                                <strong>Terminal</strong>
+                                <small>Local CLI</small>
+                            </span>
+                        </button>
+                        <button class="nav-tab" id="tab-github" type="button" data-tab="github" data-title="GitHub" data-description="Tracked GitHub activity and recently active delivery lanes." role="tab" aria-selected="false" aria-controls="github">
+                            <span class="tab-icon" aria-hidden="true">🐙</span>
+                            <span class="tab-copy">
+                                <strong>GitHub</strong>
+                                <small>Delivery feed</small>
+                            </span>
+                        </button>
+                        <button class="nav-tab" id="tab-deployments" type="button" data-tab="deployments" data-title="Deployments" data-description="Release pipeline state and current deployment progress." role="tab" aria-selected="false" aria-controls="deployments">
+                            <span class="tab-icon" aria-hidden="true">🧪</span>
+                            <span class="tab-copy">
+                                <strong>Deployments</strong>
+                                <small>Pipeline</small>
+                            </span>
+                        </button>
+                        <button class="nav-tab" id="tab-settings" type="button" data-tab="settings" data-title="Settings" data-description="Refresh cadence, profile, and mission preferences." role="tab" aria-selected="false" aria-controls="settings">
+                            <span class="tab-icon" aria-hidden="true">⚙️</span>
+                            <span class="tab-copy">
+                                <strong>Settings</strong>
+                                <small>Configuration</small>
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer mission-footer">
+                <div class="clock-widget mission-clock" aria-label="Current mission time">
+                    <p class="eyebrow">Mission Time</p>
+                    <div class="clock-time" id="clock-time">--:--:--</div>
                     <div class="clock-date" id="clock-date">---</div>
                 </div>
-                <div class="status-indicator sidebar-status">
-                    <span class="status-dot online"></span>
-                    <span class="status-text">Systems nominal</span>
+                <div class="status-indicator rail-status" aria-live="polite">
+                    <span class="status-dot online" aria-hidden="true"></span>
+                    <span class="status-text">Mission systems nominal</span>
                 </div>
             </div>
+        </aside>
 
-            <ul class="nav-tabs" role="tablist" aria-label="Dashboard sections">
-                <li class="nav-tab active" data-tab="overview" role="tab" aria-selected="true" tabindex="0"><span class="tab-icon">📊</span><span>Overview</span></li>
-                <li class="nav-tab" data-tab="daily" role="tab" aria-selected="false" tabindex="0"><span class="tab-icon">📅</span><span>Daily</span></li>
-                <li class="nav-tab" data-tab="system" role="tab" aria-selected="false" tabindex="0"><span class="tab-icon">🖥️</span><span>System</span></li>
-                <li class="nav-tab" data-tab="terminal" role="tab" aria-selected="false" tabindex="0"><span class="tab-icon">💻</span><span>Terminal</span></li>
-                <li class="nav-tab" data-tab="logs" role="tab" aria-selected="false" tabindex="0"><span class="tab-icon">📜</span><span>Logs</span></li>
-                <li class="nav-tab has-submenu" data-tab="services" role="button" aria-expanded="false" tabindex="0">
-                    <div class="nav-tab-main"><span class="tab-icon">🔧</span><span>Services</span></div>
-                    <span class="submenu-toggle" aria-hidden="true">▸</span>
-                    <ul class="submenu" aria-label="Service providers">
-                        <li class="submenu-item" data-tab="cloudflare" role="tab" aria-selected="false" tabindex="0">☁️ Cloudflare</li>
-                        <li class="submenu-item" data-tab="dokploy" role="tab" aria-selected="false" tabindex="0">🚀 Dokploy</li>
-                    </ul>
-                </li>
-                <li class="nav-tab" data-tab="github" role="tab" aria-selected="false" tabindex="0"><span class="tab-icon">🐙</span><span>GitHub</span></li>
-                <li class="nav-tab" data-tab="deployments" role="tab" aria-selected="false" tabindex="0"><span class="tab-icon">🛰️</span><span>Deployments</span></li>
-                <li class="nav-tab" data-tab="projects" role="tab" aria-selected="false" tabindex="0"><span class="tab-icon">🗂️</span><span>Projects</span></li>
-                <li class="nav-tab" data-tab="settings" role="tab" aria-selected="false" tabindex="0"><span class="tab-icon">⚙️</span><span>Settings</span></li>
-            </ul>
-
-            <div class="sidebar-footer">
-                <div class="sidebar-footer-card">
-                    <span class="sidebar-footer-label">Current mode</span>
-                    <strong>Dark orbit</strong>
+        <div class="main-content mission-stage">
+            <header class="header mission-header">
+                <div class="header-left mission-heading">
+                    <p class="eyebrow">Flight Director Console</p>
+                    <h2 id="page-title">Overview</h2>
+                    <p class="page-description" id="page-description">Gateway health, live telemetry, sessions, and current mission status.</p>
+                    <span class="greeting" id="greeting">Hello!</span>
                 </div>
-            </div>
-        </nav>
-
-        <main class="main-content">
-            <header class="header" aria-label="Dashboard header">
-                <div class="header-left">
-                    <div class="header-copy">
-                        <p class="eyebrow">Operations deck</p>
-                        <h2 id="page-title">Overview</h2>
-                        <span class="greeting" id="greeting">Hello!</span>
-                        <p class="page-description" id="page-description">Operational dashboard section</p>
-                    </div>
-                </div>
-                <div class="header-center" aria-label="System summary">
-                    <div class="header-stat">
-                        <span class="header-stat-label">Gateway</span>
-                        <strong>Online</strong>
-                    </div>
-                    <div class="header-stat">
-                        <span class="header-stat-label">Zone</span>
-                        <strong>Europe/Istanbul</strong>
-                    </div>
-                    <div class="header-stat">
-                        <span class="header-stat-label">Host</span>
-                        <strong id="header-hostname">--</strong>
-                    </div>
-                    <div class="header-stat">
-                        <span class="header-stat-label">Platform</span>
-                        <strong id="header-platform">--</strong>
-                    </div>
-                    <div class="header-stat">
-                        <span class="header-stat-label">Date</span>
-                        <strong id="header-date">--</strong>
-                    </div>
-                    <div class="header-stat">
-                        <span class="header-stat-label">Time</span>
+                <div class="header-right mission-toolbar">
+                    <div class="mission-time-pill" aria-label="Current local time">
+                        <span class="pill-label">Local Time</span>
                         <strong id="header-time">--:--:--</strong>
+                        <span id="header-date">---</span>
                     </div>
-                    <div class="header-stat">
-                        <span class="header-stat-label">Refresh</span>
-                        <strong id="refresh-cycle">30s auto</strong>
+                    <div class="toolbar-telemetry" aria-label="Mission telemetry">
+                        <div class="telemetry-pill">
+                            <span class="telemetry-label">Weather City</span>
+                            <strong id="weather-loc">Istanbul</strong>
+                        </div>
+                        <div class="telemetry-pill">
+                            <span class="telemetry-label">Refresh Cycle</span>
+                            <strong id="refresh-cycle">30s auto</strong>
+                        </div>
+                        <div class="telemetry-pill">
+                            <span class="telemetry-label">Last Sync</span>
+                            <strong id="last-updated">--:--:--</strong>
+                        </div>
                     </div>
-                    <div class="header-stat">
-                        <span class="header-stat-label">Updated</span>
-                        <strong id="last-updated">--:--:--</strong>
+                    <div class="header-actions quick-actions" aria-label="Quick actions">
+                        <button class="btn btn-secondary" type="button" data-jump-tab="services" aria-label="Open services section">Services</button>
+                        <button class="btn btn-secondary" type="button" data-jump-tab="logs" aria-label="Open logs section">Logs</button>
+                        <button class="btn btn-primary btn-refresh" id="refresh-btn" type="button" aria-label="Refresh dashboard data">
+                            <span aria-hidden="true">⟳</span>
+                            <span>Refresh</span>
+                        </button>
                     </div>
-                </div>
-                <div class="header-actions">
-                    <button class="btn btn-refresh" id="refresh-btn" aria-label="Refresh dashboard">🔄 Refresh</button>
                 </div>
             </header>
 
-            <section class="tab-content active" id="overview" aria-label="Overview tab">
-                <div class="cards-grid overview-grid">
-                    <article class="card hero-card status-card">
-                        <div class="card-header">
-                            <div>
-                                <span class="card-kicker">Core gateway</span>
-                                <h3>Gateway Status</h3>
-                            </div>
-                            <span class="badge badge-success">Running</span>
-                        </div>
-                        <div class="card-body">
-                            <div class="metric-stack">
-                                <div class="metric"><span class="metric-label">Port</span><span class="metric-value">18789</span></div>
-                                <div class="metric"><span class="metric-label">Bind</span><span class="metric-value">127.0.0.1</span></div>
-                                <div class="metric"><span class="metric-label">Uptime</span><span class="metric-value" id="uptime">--</span></div>
-                            </div>
-                        </div>
-                    </article>
-
-                    <article class="card">
-                        <div class="card-header">
-                            <div>
-                                <span class="card-kicker">Live operators</span>
-                                <h3>Active Sessions</h3>
-                            </div>
-                            <span class="badge badge-info" id="session-count">0</span>
-                        </div>
-                        <div class="summary-grid mission-summary">
-                            <div class="summary-tile"><span class="summary-label">Active Sessions</span><strong id="summary-active-sessions">0</strong></div>
-                            <div class="summary-tile"><span class="summary-label">Models</span><strong id="summary-model-count">0</strong></div>
-                            <div class="summary-tile"><span class="summary-label">Running Projects</span><strong id="summary-running-projects">0</strong></div>
-                            <div class="summary-tile"><span class="summary-label">Tracked Projects</span><strong id="summary-total-projects">0</strong></div>
-                        </div>
-                        <div class="card-body" id="sessions-list">
-                            <div class="skeleton-list" aria-hidden="true">
-                                <span class="skeleton-line short"></span>
-                                <span class="skeleton-line"></span>
-                                <span class="skeleton-line short"></span>
-                            </div>
-                            <p class="empty-state">No active sessions</p>
-                        </div>
-                    </article>
-
-                    <article class="card">
-                        <div class="card-header">
-                            <div>
-                                <span class="card-kicker">Health sweep</span>
-                                <h3>Services</h3>
-                            </div>
-                        </div>
-                        <div class="summary-grid service-summary-grid">
-                            <div class="summary-tile"><span class="summary-label">Online</span><strong id="services-summary-online">0</strong></div>
-                            <div class="summary-tile"><span class="summary-label">Offline</span><strong id="services-summary-offline">0</strong></div>
-                            <div class="summary-tile"><span class="summary-label">Total</span><strong id="services-total-count">0</strong></div>
-                            <div class="summary-tile"><span class="summary-label">State</span><strong id="services-summary-status">Nominal</strong></div>
-                        </div>
-                        <div class="card-body">
-                            <div id="network-status" class="services-list" aria-live="polite">
-                                <div class="skeleton-list" aria-hidden="true">
-                                    <span class="skeleton-line"></span>
-                                    <span class="skeleton-line"></span>
-                                    <span class="skeleton-line short"></span>
+            <main class="content-deck">
+                <section class="tab-content active" id="overview" role="tabpanel" aria-labelledby="tab-overview">
+                    <div class="cards-grid overview-grid">
+                        <article class="card overview-hero">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Gateway</p>
+                                    <h3>Mission Gateway</h3>
                                 </div>
-                                <div class="loading">Checking services...</div>
+                                <span class="badge badge-success">Nominal</span>
                             </div>
-                            <div class="services-footer">
-                                <span id="services-online-count">0 online</span>
-                                <span id="services-offline-count">0 offline</span>
+                            <div class="card-body hero-body">
+                                <div class="hero-radar">
+                                    <span class="hero-radar-ring"></span>
+                                    <span class="hero-radar-ring"></span>
+                                    <span class="hero-radar-core">ONLINE</span>
+                                </div>
+                                <div class="metrics-cluster">
+                                    <div class="metric-tile">
+                                        <span class="metric-label">Port</span>
+                                        <strong class="metric-value">18789</strong>
+                                    </div>
+                                    <div class="metric-tile">
+                                        <span class="metric-label">Bind</span>
+                                        <strong class="metric-value">127.0.0.1</strong>
+                                    </div>
+                                    <div class="metric-tile">
+                                        <span class="metric-label">Uptime</span>
+                                        <strong class="metric-value" id="uptime">--</strong>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </article>
+                        </article>
 
-                    <article class="card">
-                        <div class="card-header">
-                            <div>
-                                <span class="card-kicker">Model roster</span>
-                                <h3>Models</h3>
+                        <article class="card">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Snapshot</p>
+                                    <h3>Mission State</h3>
+                                </div>
+                                <span class="badge badge-info">Live</span>
                             </div>
-                            <span class="badge badge-info" id="model-count">2</span>
-                        </div>
-                        <div class="card-body" id="models-list">
-                            <div class="model-item"><span class="model-name">kimi-k2.6:cloud</span><span class="model-status active">Active</span></div>
-                            <div class="model-item"><span class="model-name">minimax-m2.7:cloud</span><span class="model-status">Idle</span></div>
-                        </div>
-                    </article>
+                            <div class="card-body stat-grid">
+                                <div class="stat-tile">
+                                    <span class="stat-label">Active Sessions</span>
+                                    <strong id="summary-active-sessions">0</strong>
+                                </div>
+                                <div class="stat-tile">
+                                    <span class="stat-label">Models Online</span>
+                                    <strong id="summary-model-count">0</strong>
+                                </div>
+                                <div class="stat-tile">
+                                    <span class="stat-label">Running Projects</span>
+                                    <strong id="summary-running-projects">0</strong>
+                                </div>
+                                <div class="stat-tile">
+                                    <span class="stat-label">Tracked Projects</span>
+                                    <strong id="summary-total-projects">0</strong>
+                                </div>
+                            </div>
+                        </article>
 
-                    <article class="card weather-card">
-                        <div class="card-header">
-                            <div>
-                                <span class="card-kicker">Local orbit</span>
-                                <h3>Weather</h3>
+                        <article class="card weather-card">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Atmospherics</p>
+                                    <h3>Weather Snapshot</h3>
+                                </div>
+                                <span class="badge badge-info">Live</span>
                             </div>
-                            <span class="badge badge-info" id="weather-loc">Istanbul</span>
-                        </div>
-                        <div class="card-body weather-widget">
-                            <div class="weather-main" id="weather-main">
-                                <span class="weather-icon">⛅</span>
-                                <span class="weather-temp" id="weather-temp">--°C</span>
+                            <div class="card-body weather-widget">
+                                <div class="weather-main" id="weather-main" aria-live="polite">
+                                    <span class="weather-icon" aria-hidden="true">⛅</span>
+                                    <span class="weather-temp" id="weather-temp">--°C</span>
+                                </div>
+                                <div class="weather-details" id="weather-details">
+                                    <div class="loading-shell compact">
+                                        <span class="loading-line"></span>
+                                        <span class="loading-line short"></span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="weather-details" id="weather-details"><span>Loading...</span></div>
-                        </div>
-                    </article>
-                </div>
+                        </article>
 
-                <div class="cards-grid">
-                    <article class="card">
-                        <div class="card-header">
-                            <div>
-                                <span class="card-kicker">Watchlist</span>
-                                <h3>Alert Feed</h3>
+                        <article class="card">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Alerts</p>
+                                    <h3>Recent Events</h3>
+                                </div>
+                                <span class="badge badge-warning" id="alert-count">0</span>
                             </div>
-                            <span class="badge badge-info" id="alert-count">0</span>
-                        </div>
-                        <div class="card-body">
-                            <div class="activity-feed" id="alert-feed"></div>
-                        </div>
-                    </article>
+                            <div class="card-body">
+                                <div class="alert-feed" id="alert-feed">
+                                    <p class="empty-state compact">No operational events yet.</p>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+
+                    <div class="cards-grid overview-secondary">
+                        <article class="card">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Sessions</p>
+                                    <h3>Active Agents</h3>
+                                </div>
+                                <span class="badge badge-info" id="session-count">0</span>
+                            </div>
+                            <div class="card-body" id="sessions-list">
+                                <div class="loading-shell">
+                                    <span class="loading-line"></span>
+                                    <span class="loading-line"></span>
+                                    <span class="loading-line short"></span>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="card">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Services</p>
+                                    <h3>Constellation Sweep</h3>
+                                </div>
+                                <span class="badge badge-success" id="services-online-count">0 online</span>
+                            </div>
+                            <div class="card-body">
+                                <div id="network-status" class="services-list">
+                                    <div class="loading-shell">
+                                        <span class="loading-line"></span>
+                                        <span class="loading-line"></span>
+                                        <span class="loading-line short"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="card">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Models</p>
+                                    <h3>Inference Channels</h3>
+                                </div>
+                                <span class="badge badge-info" id="model-count">0</span>
+                            </div>
+                            <div class="card-body" id="models-list">
+                                <div class="loading-shell">
+                                    <span class="loading-line"></span>
+                                    <span class="loading-line"></span>
+                                    <span class="loading-line short"></span>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="card">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Projects</p>
+                                    <h3>Flight Queue</h3>
+                                </div>
+                                <span class="badge badge-info" id="overview-project-count">0</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="overview-project-list" id="project-overview-list">
+                                    <p class="empty-state compact">Project telemetry will appear here.</p>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+
+                    <div class="cards-grid">
+                        <article class="card full-width">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Usage</p>
+                                    <h3>Token Pressure</h3>
+                                </div>
+                                <span class="badge badge-info">Top Sessions</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="token-bars" id="token-bars">
+                                    <div class="loading-shell">
+                                        <span class="loading-line"></span>
+                                        <span class="loading-line"></span>
+                                        <span class="loading-line"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="tab-content" id="daily" role="tabpanel" aria-labelledby="tab-daily">
+                    <div class="cards-grid daily-grid">
+                        <article class="card full-width daily-brief">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Briefing</p>
+                                    <h3>Daily Flight Plan</h3>
+                                </div>
+                                <span class="badge badge-info">Today</span>
+                            </div>
+                            <div class="card-body brief-body">
+                                <div>
+                                    <p class="brief-title">Focus the day on clear launches and clean follow-through.</p>
+                                    <p class="brief-copy">Use this deck for quick capture, conversion, and operational context without leaving the dashboard.</p>
+                                </div>
+                                <blockquote class="mission-quote">
+                                    “Discipline is the bridge between intention and delivery.”
+                                </blockquote>
+                            </div>
+                        </article>
+
+                        <article class="card">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Focus</p>
+                                    <h3>Today's Focus</h3>
+                                </div>
+                                <button class="btn btn-secondary btn-sm" id="edit-focus" type="button" aria-label="Edit today's focus">Edit</button>
+                            </div>
+                            <div class="card-body">
+                                <div class="focus-display" id="focus-display">
+                                    <p class="focus-text" id="focus-text">No focus set. Use Edit to define today's mission.</p>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="card">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Weather</p>
+                                    <h3>Field Conditions</h3>
+                                </div>
+                                <span class="badge badge-info">Istanbul</span>
+                            </div>
+                            <div class="card-body" id="weather-detailed">
+                                <div class="loading-shell">
+                                    <span class="loading-line"></span>
+                                    <span class="loading-line"></span>
+                                    <span class="loading-line short"></span>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="card">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Utilities</p>
+                                    <h3>Quick Converter</h3>
+                                </div>
+                                <span class="badge badge-info">Live</span>
+                            </div>
+                            <div class="card-body converter-widget">
+                                <div class="converter-row">
+                                    <input type="number" id="conv-input" placeholder="0" value="1" aria-label="Conversion input value">
+                                    <select id="conv-from" aria-label="Convert from unit">
+                                        <option value="km" selected>km</option>
+                                        <option value="mi">mi</option>
+                                        <option value="m">m</option>
+                                        <option value="ft">ft</option>
+                                        <option value="kg">kg</option>
+                                        <option value="lb">lb</option>
+                                        <option value="c">°C</option>
+                                        <option value="f">°F</option>
+                                        <option value="usd">USD</option>
+                                        <option value="try">TRY</option>
+                                        <option value="eur">EUR</option>
+                                        <option value="gbp">GBP</option>
+                                    </select>
+                                    <span class="converter-arrow" aria-hidden="true">→</span>
+                                    <select id="conv-to" aria-label="Convert to unit">
+                                        <option value="mi" selected>mi</option>
+                                        <option value="km">km</option>
+                                        <option value="m">m</option>
+                                        <option value="ft">ft</option>
+                                        <option value="lb">lb</option>
+                                        <option value="kg">kg</option>
+                                        <option value="f">°F</option>
+                                        <option value="c">°C</option>
+                                        <option value="try">TRY</option>
+                                        <option value="usd">USD</option>
+                                        <option value="eur">EUR</option>
+                                        <option value="gbp">GBP</option>
+                                    </select>
+                                </div>
+                                <div class="converter-result" id="converter-result">0.62 mi</div>
+                            </div>
+                        </article>
+
+                        <article class="card">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Links</p>
+                                    <h3>Quick Links</h3>
+                                </div>
+                                <button class="btn btn-secondary btn-sm" id="add-bookmark-btn" type="button" aria-label="Add quick link">Add</button>
+                            </div>
+                            <div class="card-body bookmarks-list" id="bookmarks-list">
+                                <div class="loading-shell compact">
+                                    <span class="loading-line"></span>
+                                    <span class="loading-line short"></span>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+
+                    <div class="cards-grid">
+                        <article class="card half-width">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Capture</p>
+                                    <h3>Quick Notes</h3>
+                                </div>
+                                <button class="btn btn-secondary btn-sm" id="save-notes" type="button" aria-label="Save notes">Save</button>
+                            </div>
+                            <div class="card-body">
+                                <textarea class="quick-notes" id="quick-notes" placeholder="Capture rough notes, commands, and follow-up actions..." aria-label="Quick notes"></textarea>
+                                <div class="notes-timestamp" id="notes-timestamp">--</div>
+                            </div>
+                        </article>
+
+                        <article class="card half-width">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Tasks</p>
+                                    <h3>Todo Queue</h3>
+                                </div>
+                                <button class="btn btn-secondary btn-sm" id="add-todo-btn" type="button" aria-label="Add task">Add</button>
+                            </div>
+                            <div class="card-body">
+                                <div class="todo-list" id="todo-list">
+                                    <p class="empty-state compact">No tasks yet. Add one to begin the day.</p>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="tab-content" id="system" role="tabpanel" aria-labelledby="tab-system">
+                    <div class="cards-grid system-grid">
+                        <article class="card">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">CPU</p>
+                                    <h3>Processor Load</h3>
+                                </div>
+                                <span class="badge badge-info">Live</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="gauge-container">
+                                    <div class="gauge" id="cpu-gauge" style="--value: 0%">
+                                        <div class="gauge-core">
+                                            <span class="gauge-overline">Avg Load</span>
+                                            <span class="gauge-value" id="cpu-value">0%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="gauge-label">Session and host pressure</p>
+                            </div>
+                        </article>
+
+                        <article class="card">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">RAM</p>
+                                    <h3>Memory Usage</h3>
+                                </div>
+                                <span class="badge badge-info">Live</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="gauge-container">
+                                    <div class="gauge" id="memory-gauge" style="--value: 0%">
+                                        <div class="gauge-core">
+                                            <span class="gauge-overline">Working Set</span>
+                                            <span class="gauge-value" id="memory-value">0%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="gauge-label" id="memory-details">0 / 0 GB</p>
+                            </div>
+                        </article>
+
+                        <article class="card">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Disk</p>
+                                    <h3>Storage Usage</h3>
+                                </div>
+                                <span class="badge badge-info">Live</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="gauge-container">
+                                    <div class="gauge" id="disk-gauge" style="--value: 0%">
+                                        <div class="gauge-core">
+                                            <span class="gauge-overline">Capacity</span>
+                                            <span class="gauge-value" id="disk-value">0%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="gauge-label" id="disk-details">0 / 0 GB</p>
+                            </div>
+                        </article>
+
+                        <article class="card">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Host</p>
+                                    <h3>Machine Telemetry</h3>
+                                </div>
+                                <span class="badge badge-success">Connected</span>
+                            </div>
+                            <div class="card-body metric-stack">
+                                <div class="metric">
+                                    <span class="metric-label">Hostname</span>
+                                    <span class="metric-value" id="hostname">--</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-label">Platform</span>
+                                    <span class="metric-value" id="platform">--</span>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
 
                     <article class="card full-width">
                         <div class="card-header">
                             <div>
-                                <span class="card-kicker">Consumption</span>
-                                <h3>Token Usage</h3>
+                                <p class="eyebrow">Processes</p>
+                                <h3>Top Processes</h3>
+                            </div>
+                            <span class="badge badge-info">Snapshot</span>
+                        </div>
+                        <div class="card-body table-shell">
+                            <table class="process-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">PID</th>
+                                        <th scope="col">Name</th>
+                                        <th scope="col">CPU%</th>
+                                        <th scope="col">MEM%</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="process-list">
+                                    <tr class="skeleton-row">
+                                        <td colspan="4">
+                                            <div class="loading-shell">
+                                                <span class="loading-line"></span>
+                                                <span class="loading-line short"></span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="tab-content" id="services" role="tabpanel" aria-labelledby="tab-services">
+                    <div class="cards-grid">
+                        <article class="card">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Routing</p>
+                                    <h3>Cloudflare Edge</h3>
+                                </div>
+                                <span class="badge badge-info">DNS + Proxy</span>
+                            </div>
+                            <div class="card-body split-panel">
+                                <p class="card-copy">Review DNS inventory, proxy posture, and public edge routing for your primary zone.</p>
+                                <button class="btn btn-secondary" type="button" data-jump-tab="cloudflare">Open Cloudflare</button>
+                            </div>
+                        </article>
+
+                        <article class="card">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Runtime</p>
+                                    <h3>Dokploy Fleet</h3>
+                                </div>
+                                <span class="badge badge-success">Deployments</span>
+                            </div>
+                            <div class="card-body split-panel">
+                                <p class="card-copy">Inspect the current app and database footprint surfaced by Dokploy through the proxy backend.</p>
+                                <button class="btn btn-secondary" type="button" data-jump-tab="dokploy">Open Dokploy</button>
+                            </div>
+                        </article>
+
+                        <article class="card full-width">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Mission Routing</p>
+                                    <h3>Service Overview</h3>
+                                </div>
+                                <span class="badge badge-warning" id="services-offline-count">0 offline</span>
+                            </div>
+                            <div class="card-body service-overview-panel">
+                                <div class="stat-grid">
+                                    <div class="stat-tile">
+                                        <span class="stat-label">Tracked Services</span>
+                                        <strong id="services-total-count">0</strong>
+                                    </div>
+                                    <div class="stat-tile">
+                                        <span class="stat-label">Online</span>
+                                        <strong id="services-summary-online">0</strong>
+                                    </div>
+                                    <div class="stat-tile">
+                                        <span class="stat-label">Offline</span>
+                                        <strong id="services-summary-offline">0</strong>
+                                    </div>
+                                    <div class="stat-tile">
+                                        <span class="stat-label">Status</span>
+                                        <strong id="services-summary-status">Awaiting sweep</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="tab-content" id="cloudflare" role="tabpanel" aria-labelledby="tab-cloudflare">
+                    <div class="cards-grid">
+                        <article class="card full-width">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Zone</p>
+                                    <h3>Cloudflare DNS</h3>
+                                </div>
+                                <span class="badge badge-info">yigitsolutions.com</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="stats-strip" id="cloudflare-stats">
+                                    <div class="stat-chip skeleton"></div>
+                                    <div class="stat-chip skeleton"></div>
+                                    <div class="stat-chip skeleton"></div>
+                                </div>
+                                <div id="cloudflare-records" class="cf-records-list">
+                                    <div class="loading-shell">
+                                        <span class="loading-line"></span>
+                                        <span class="loading-line"></span>
+                                        <span class="loading-line short"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="tab-content" id="dokploy" role="tabpanel" aria-labelledby="tab-dokploy">
+                    <div class="cards-grid">
+                        <article class="card full-width">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Fleet</p>
+                                    <h3>Dokploy Projects</h3>
+                                </div>
+                                <span class="badge badge-success">Live</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="stats-strip" id="dokploy-stats">
+                                    <div class="stat-chip skeleton"></div>
+                                    <div class="stat-chip skeleton"></div>
+                                    <div class="stat-chip skeleton"></div>
+                                </div>
+                                <div id="dokploy-projects" class="dokploy-list">
+                                    <div class="loading-shell">
+                                        <span class="loading-line"></span>
+                                        <span class="loading-line"></span>
+                                        <span class="loading-line short"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="tab-content" id="projects" role="tabpanel" aria-labelledby="tab-projects">
+                    <div class="projects-header">
+                        <div>
+                            <p class="eyebrow">Repositories</p>
+                            <h3>Your Projects</h3>
+                        </div>
+                        <button class="btn btn-primary" id="add-project-btn" type="button" aria-label="Add project">Add Project</button>
+                    </div>
+                    <div class="stats-strip project-stats">
+                        <div class="stat-chip">
+                            <span>Running</span>
+                            <strong id="projects-running-count">0</strong>
+                        </div>
+                        <div class="stat-chip">
+                            <span>Stopped</span>
+                            <strong id="projects-stopped-count">0</strong>
+                        </div>
+                        <div class="stat-chip">
+                            <span>Dirty Repos</span>
+                            <strong id="projects-dirty-count">0</strong>
+                        </div>
+                        <div class="stat-chip">
+                            <span>Last Sync</span>
+                            <strong id="projects-last-sync">Awaiting refresh</strong>
+                        </div>
+                    </div>
+                    <div class="projects-grid" id="projects-grid">
+                        <p class="empty-state">Project cards will appear here.</p>
+                    </div>
+                </section>
+
+                <section class="tab-content" id="logs" role="tabpanel" aria-labelledby="tab-logs">
+                    <article class="card full-width">
+                        <div class="card-header">
+                            <div>
+                                <p class="eyebrow">Events</p>
+                                <h3>OpenClaw Logs</h3>
+                            </div>
+                            <div class="log-controls">
+                                <input class="log-search" id="log-search" type="search" placeholder="Filter logs..." aria-label="Filter logs">
+                                <span class="badge badge-info" id="log-count">0 entries</span>
+                                <button class="btn btn-secondary btn-sm" id="pause-logs" type="button" aria-pressed="false">Pause</button>
+                                <button class="btn btn-secondary btn-sm" id="clear-logs" type="button">Clear</button>
                             </div>
                         </div>
                         <div class="card-body">
-                            <div class="token-bars" id="token-bars">
-                                <div class="skeleton-list" aria-hidden="true">
-                                    <span class="skeleton-line"></span>
-                                    <span class="skeleton-line"></span>
-                                    <span class="skeleton-line"></span>
+                            <div class="log-viewer" id="log-viewer" role="log" aria-live="polite">
+                                <p class="empty-state compact">Operational logs will stream here.</p>
+                            </div>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="tab-content" id="terminal" role="tabpanel" aria-labelledby="tab-terminal">
+                    <div class="cards-grid">
+                        <article class="card terminal-shell full-width">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">CLI</p>
+                                    <h3>Local Terminal</h3>
+                                </div>
+                                <span class="badge badge-info">Local session</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="terminal-hint-strip">
+                                    <span class="terminal-hint">Try: <code>help</code></span>
+                                    <span class="terminal-hint"><code>status</code></span>
+                                    <span class="terminal-hint"><code>projects</code></span>
+                                    <span class="terminal-hint"><code>date</code></span>
+                                </div>
+                                <div class="terminal-container">
+                                    <div id="terminal-output" class="terminal-output" aria-live="polite"></div>
+                                    <label class="terminal-input-line" for="terminal-input">
+                                        <span class="terminal-prompt" aria-hidden="true">$</span>
+                                        <input type="text" id="terminal-input" class="terminal-input" placeholder="Enter command..." autocomplete="off" aria-label="Terminal command input">
+                                    </label>
                                 </div>
                             </div>
-                        </div>
-                    </article>
-                </div>
-            </section>
+                        </article>
+                    </div>
+                </section>
 
-            <section class="tab-content" id="daily" aria-label="Daily tab">
-                <div class="cards-grid">
-                    <article class="card">
-                        <div class="card-header">
-                            <div><span class="card-kicker">Intention</span><h3>Today's Focus</h3></div>
-                            <button class="btn btn-sm" id="edit-focus">✏️ Edit</button>
-                        </div>
-                        <div class="card-body"><div class="focus-display" id="focus-display"><p class="focus-text" id="focus-text">No focus set. Click Edit to add your intention for today.</p></div></div>
-                    </article>
-                    <article class="card">
-                        <div class="card-header"><div><span class="card-kicker">Forecast</span><h3>Weather</h3></div><span class="badge badge-info">Istanbul</span></div>
-                        <div class="card-body" id="weather-detailed"><div class="weather-loading">Loading weather...</div></div>
-                    </article>
-                    <article class="card">
-                        <div class="card-header"><div><span class="card-kicker">Utility</span><h3>Quick Converter</h3></div></div>
-                        <div class="card-body converter-widget">
-                            <div class="converter-row">
-                                <input type="number" id="conv-input" placeholder="0" value="1" aria-label="Converter input">
-                                <select id="conv-from" aria-label="Convert from">
-                                    <option value="km" selected>km</option><option value="mi">mi</option><option value="m">m</option><option value="ft">ft</option><option value="kg">kg</option><option value="lb">lb</option><option value="c">°C</option><option value="f">°F</option><option value="usd">USD</option><option value="try">TRY</option><option value="eur">EUR</option><option value="gbp">GBP</option>
-                                </select>
-                                <span class="converter-arrow">→</span>
-                                <select id="conv-to" aria-label="Convert to">
-                                    <option value="mi" selected>mi</option><option value="km">km</option><option value="m">m</option><option value="ft">ft</option><option value="lb">lb</option><option value="kg">kg</option><option value="f">°F</option><option value="c">°C</option><option value="try">TRY</option><option value="usd">USD</option><option value="eur">EUR</option><option value="gbp">GBP</option>
-                                </select>
+                <section class="tab-content" id="github" role="tabpanel" aria-labelledby="tab-github">
+                    <div class="cards-grid">
+                        <article class="card full-width">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Activity</p>
+                                    <h3>GitHub Feed</h3>
+                                </div>
+                                <span class="badge badge-info">yeetozer</span>
                             </div>
-                            <div class="converter-result" id="converter-result">0.62 mi</div>
-                        </div>
-                    </article>
-                    <article class="card">
-                        <div class="card-header"><div><span class="card-kicker">Shortcuts</span><h3>Quick Links</h3></div><button class="btn btn-sm" id="add-bookmark-btn">+ Add</button></div>
-                        <div class="card-body" id="bookmarks-list">
-                            <div class="bookmark-item"><a href="https://github.com" target="_blank" class="bookmark-link"><span class="bookmark-icon">🐙</span><span>GitHub</span></a></div>
-                            <div class="bookmark-item"><a href="https://clawhub.ai" target="_blank" class="bookmark-link"><span class="bookmark-icon">🐾</span><span>ClawHub</span></a></div>
-                        </div>
-                    </article>
-                </div>
-                <div class="cards-grid">
-                    <article class="card half-width">
-                        <div class="card-header"><div><span class="card-kicker">Scratchpad</span><h3>Quick Notes</h3></div><button class="btn btn-sm" id="save-notes">💾 Save</button></div>
-                        <div class="card-body"><textarea class="quick-notes" id="quick-notes" placeholder="Type your notes here..." aria-label="Quick notes"></textarea><div class="notes-timestamp" id="notes-timestamp">--</div></div>
-                    </article>
-                    <article class="card half-width">
-                        <div class="card-header"><div><span class="card-kicker">Tasks</span><h3>Todo</h3></div><button class="btn btn-sm" id="add-todo-btn">+ Add</button></div>
-                        <div class="card-body"><div class="todo-list" id="todo-list"></div></div>
-                    </article>
-                </div>
-            </section>
+                            <div class="card-body">
+                                <div id="github-activity" class="activity-feed">
+                                    <div class="activity-item">
+                                        <div class="activity-icon commit" aria-hidden="true">📝</div>
+                                        <div class="activity-content">
+                                            <div class="activity-title">Commit to <strong>fadeolog-frontend</strong></div>
+                                            <div class="activity-desc">feat: Add appointment booking flow</div>
+                                            <div class="activity-meta">2 days ago • 3 files changed</div>
+                                        </div>
+                                    </div>
+                                    <div class="activity-item">
+                                        <div class="activity-icon pr" aria-hidden="true">🔀</div>
+                                        <div class="activity-content">
+                                            <div class="activity-title">Pull Request <strong>#42</strong></div>
+                                            <div class="activity-desc">feat: Mobile responsive design</div>
+                                            <div class="activity-meta">3 days ago • yeets-map</div>
+                                        </div>
+                                    </div>
+                                    <div class="activity-item">
+                                        <div class="activity-icon issue" aria-hidden="true">🐛</div>
+                                        <div class="activity-content">
+                                            <div class="activity-title">Issue Opened <strong>#15</strong></div>
+                                            <div class="activity-desc">Bug: Map markers not loading</div>
+                                            <div class="activity-meta">5 days ago • yigit-map-mobile</div>
+                                        </div>
+                                    </div>
+                                    <div class="activity-item">
+                                        <div class="activity-icon release" aria-hidden="true">🏷️</div>
+                                        <div class="activity-content">
+                                            <div class="activity-title">Release <strong>v1.2.0</strong></div>
+                                            <div class="activity-desc">Fadeolog production release</div>
+                                            <div class="activity-meta">1 week ago • fadeolog-backend</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+                </section>
 
-            <section class="tab-content" id="system" aria-label="System tab">
-                <div class="cards-grid">
-                    <article class="card metric-card"><div class="card-header"><div><span class="card-kicker">Compute</span><h3>CPU Usage</h3></div></div><div class="card-body"><div class="gauge-container"><div class="gauge" id="cpu-gauge" style="--value:0%"><div class="gauge-fill" style="--value: 0%"></div><span class="gauge-value" id="cpu-value">0%</span></div></div><p class="gauge-label">Average Load</p></div></article>
-                    <article class="card metric-card"><div class="card-header"><div><span class="card-kicker">Memory</span><h3>RAM</h3></div></div><div class="card-body"><div class="gauge-container"><div class="gauge" id="memory-gauge" style="--value:0%"><div class="gauge-fill" style="--value: 0%"></div><span class="gauge-value" id="memory-value">0%</span></div></div><p class="gauge-label" id="memory-details">0 / 0 GB</p></div></article>
-                    <article class="card metric-card"><div class="card-header"><div><span class="card-kicker">Storage</span><h3>Disk Usage</h3></div></div><div class="card-body"><div class="gauge-container"><div class="gauge" id="disk-gauge" style="--value:0%"><div class="gauge-fill" style="--value: 0%"></div><span class="gauge-value" id="disk-value">0%</span></div></div><p class="gauge-label" id="disk-details">0 / 0 GB</p></div></article>
-                    <article class="card"><div class="card-header"><div><span class="card-kicker">Node info</span><h3>Network</h3></div></div><div class="card-body"><div class="metric"><span class="metric-label">Hostname</span><span class="metric-value" id="hostname">--</span></div><div class="metric"><span class="metric-label">Platform</span><span class="metric-value" id="platform">--</span></div></div></article>
-                </div>
-                <article class="card full-width"><div class="card-header"><div><span class="card-kicker">Process radar</span><h3>Top Processes</h3></div></div><div class="card-body"><table class="process-table"><thead><tr><th>PID</th><th>Name</th><th>CPU%</th><th>MEM%</th></tr></thead><tbody id="process-list"></tbody></table></div></article>
-            </section>
+                <section class="tab-content" id="deployments" role="tabpanel" aria-labelledby="tab-deployments">
+                    <div class="cards-grid">
+                        <article class="card full-width">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Release Lane</p>
+                                    <h3>Deployment Pipeline</h3>
+                                </div>
+                                <span class="badge badge-info">Dokploy</span>
+                            </div>
+                            <div class="card-body">
+                                <div id="deployment-pipeline" class="pipeline-container">
+                                    <div class="pipeline-stage">
+                                        <div class="stage-header">
+                                            <span class="stage-name">Fadeolog Frontend</span>
+                                            <span class="stage-status deployed">Deployed</span>
+                                        </div>
+                                        <div class="stage-progress">
+                                            <div class="progress-bar">
+                                                <div class="progress-fill" style="width: 100%"></div>
+                                            </div>
+                                            <span class="progress-text">Production</span>
+                                        </div>
+                                        <div class="stage-meta">
+                                            <span>🌐 yeetsmap.yigitsolutions.com</span>
+                                            <span>📅 3 days ago</span>
+                                        </div>
+                                    </div>
+                                    <div class="pipeline-stage">
+                                        <div class="stage-header">
+                                            <span class="stage-name">Yigit Map Web</span>
+                                            <span class="stage-status deployed">Deployed</span>
+                                        </div>
+                                        <div class="stage-progress">
+                                            <div class="progress-bar">
+                                                <div class="progress-fill" style="width: 100%"></div>
+                                            </div>
+                                            <span class="progress-text">Production</span>
+                                        </div>
+                                        <div class="stage-meta">
+                                            <span>🌐 yeetsmap.yigitsolutions.com</span>
+                                            <span>📅 1 week ago</span>
+                                        </div>
+                                    </div>
+                                    <div class="pipeline-stage">
+                                        <div class="stage-header">
+                                            <span class="stage-name">Fadeolog Backend</span>
+                                            <span class="stage-status building">Building</span>
+                                        </div>
+                                        <div class="stage-progress">
+                                            <div class="progress-bar">
+                                                <div class="progress-fill building" style="width: 65%"></div>
+                                            </div>
+                                            <span class="progress-text">65% - Docker Build</span>
+                                        </div>
+                                        <div class="stage-meta">
+                                            <span>🐳 Docker</span>
+                                            <span>⏱️ 2m 34s</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+                </section>
 
-            <section class="tab-content" id="logs" aria-label="Logs tab">
-                <article class="card full-width"><div class="card-header"><div><span class="card-kicker">Runtime trail</span><h3>OpenClaw Logs</h3></div><div class="log-controls"><input type="search" id="log-search" placeholder="Filter logs" aria-label="Filter logs"><span class="badge badge-info" id="log-count">0</span><button class="btn btn-sm" id="pause-logs">⏸️ Pause</button><button class="btn btn-sm" id="clear-logs">🗑️ Clear</button></div></div><div class="card-body"><pre class="log-viewer" id="log-viewer"><code>Loading logs...</code></pre></div></article>
-            </section>
+                <section class="tab-content" id="settings" role="tabpanel" aria-labelledby="tab-settings">
+                    <div class="cards-grid">
+                        <article class="card">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Display</p>
+                                    <h3>Refresh Settings</h3>
+                                </div>
+                                <span class="badge badge-info">Config</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="setting-item">
+                                    <label for="refresh-interval">Refresh Interval</label>
+                                    <select id="refresh-interval" aria-label="Refresh interval">
+                                        <option value="10">10 seconds</option>
+                                        <option value="30" selected>30 seconds</option>
+                                        <option value="60">1 minute</option>
+                                        <option value="300">5 minutes</option>
+                                    </select>
+                                </div>
+                                <div class="setting-item checkbox-item">
+                                    <label for="auto-refresh">Auto-refresh</label>
+                                    <input type="checkbox" id="auto-refresh" checked aria-label="Enable auto refresh">
+                                </div>
+                            </div>
+                        </article>
 
-            <section class="tab-content" id="terminal" aria-label="Terminal tab">
-                <div class="cards-grid">
-                    <article class="card full-width terminal-card"><div class="card-header"><div><span class="card-kicker">Local shell</span><h3>Terminal</h3></div><span class="badge badge-info">Local</span></div><div class="card-body"><div class="terminal-container"><div class="terminal-topbar"><span class="terminal-light red"></span><span class="terminal-light yellow"></span><span class="terminal-light green"></span><span class="terminal-title">yeet@mission-control</span></div><div id="terminal-output" class="terminal-output"></div><div class="terminal-input-line"><span class="terminal-prompt">$</span><input type="text" id="terminal-input" class="terminal-input" placeholder="Enter command..." autocomplete="off" aria-label="Terminal command"></div></div></div></article>
-                </div>
-            </section>
+                        <article class="card">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Location</p>
+                                    <h3>Weather City</h3>
+                                </div>
+                                <span class="badge badge-info">Forecast</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="setting-item stacked">
+                                    <label for="weather-city">Weather City</label>
+                                    <input type="text" id="weather-city" value="Istanbul" placeholder="City name" aria-label="Weather city">
+                                </div>
+                            </div>
+                        </article>
 
-            <section class="tab-content" id="cloudflare" aria-label="Cloudflare tab">
-                <div class="cards-grid"><article class="card full-width"><div class="card-header"><div><span class="card-kicker">Edge records</span><h3>DNS Records</h3></div><span class="badge badge-info">yigitsolutions.com</span></div><div class="card-body"><div id="cloudflare-records" class="cf-records-list"><div class="skeleton-list" aria-hidden="true"><span class="skeleton-line"></span><span class="skeleton-line"></span><span class="skeleton-line"></span></div><div class="loading">Loading DNS records...</div></div></div></article></div>
-            </section>
-
-            <section class="tab-content" id="dokploy" aria-label="Dokploy tab">
-                <div class="cards-grid"><article class="card full-width"><div class="card-header"><div><span class="card-kicker">Deployment host</span><h3>Dokploy Projects</h3></div><span class="badge badge-info">Live</span></div><div class="card-body"><div id="dokploy-projects" class="dokploy-list"><div class="skeleton-list" aria-hidden="true"><span class="skeleton-line"></span><span class="skeleton-line"></span><span class="skeleton-line short"></span></div><div class="loading">Loading Dokploy projects...</div></div></div></article></div>
-            </section>
-
-            <section class="tab-content" id="github" aria-label="GitHub tab">
-                <div class="cards-grid"><article class="card full-width"><div class="card-header"><div><span class="card-kicker">Recent motion</span><h3>GitHub Activity</h3></div><span class="badge badge-info">yeetozer</span></div><div class="card-body"><div id="github-activity" class="activity-feed"><div class="activity-item"><div class="activity-icon commit">📝</div><div class="activity-content"><div class="activity-title">Commit to <strong>fadeolog-frontend</strong></div><div class="activity-desc">feat: Add appointment booking flow</div><div class="activity-meta">2 days ago • 3 files changed</div></div></div><div class="activity-item"><div class="activity-icon pr">🔀</div><div class="activity-content"><div class="activity-title">Pull Request <strong>#42</strong></div><div class="activity-desc">feat: Mobile responsive design</div><div class="activity-meta">3 days ago • yeets-map</div></div></div><div class="activity-item"><div class="activity-icon issue">🐛</div><div class="activity-content"><div class="activity-title">Issue Opened <strong>#15</strong></div><div class="activity-desc">Bug: Map markers not loading</div><div class="activity-meta">5 days ago • yigit-map-mobile</div></div></div><div class="activity-item"><div class="activity-icon release">🏷️</div><div class="activity-content"><div class="activity-title">Release <strong>v1.2.0</strong></div><div class="activity-desc">Fadeolog production release</div><div class="activity-meta">1 week ago • fadeolog-backend</div></div></div></div></div></article></div>
-            </section>
-
-            <section class="tab-content" id="deployments" aria-label="Deployments tab">
-                <div class="cards-grid"><article class="card full-width"><div class="card-header"><div><span class="card-kicker">Pipeline map</span><h3>Deployment Pipeline</h3></div><span class="badge badge-info">Dokploy</span></div><div class="card-body"><div id="deployment-pipeline" class="pipeline-container"><div class="pipeline-stage"><div class="stage-header"><span class="stage-name">Fadeolog Frontend</span><span class="stage-status deployed">Deployed</span></div><div class="stage-progress"><div class="progress-bar"><div class="progress-fill" style="width: 100%"></div></div><span class="progress-text">Production</span></div><div class="stage-meta"><span>🌐 yeetsmap.yigitsolutions.com</span><span>📅 3 days ago</span></div></div><div class="pipeline-stage"><div class="stage-header"><span class="stage-name">Yigit Map Web</span><span class="stage-status deployed">Deployed</span></div><div class="stage-progress"><div class="progress-bar"><div class="progress-fill" style="width: 100%"></div></div><span class="progress-text">Production</span></div><div class="stage-meta"><span>🌐 yeetsmap.yigitsolutions.com</span><span>📅 1 week ago</span></div></div><div class="pipeline-stage"><div class="stage-header"><span class="stage-name">Fadeolog Backend</span><span class="stage-status building">Building</span></div><div class="stage-progress"><div class="progress-bar"><div class="progress-fill building" style="width: 65%"></div></div><span class="progress-text">65% - Docker Build</span></div><div class="stage-meta"><span>🐳 Docker</span><span>⏱️ 2m 34s</span></div></div></div></div></article></div>
-            </section>
-
-            <section class="tab-content" id="projects" aria-label="Projects tab">
-                <div class="projects-header"><div><p class="eyebrow">Build portfolio</p><h3>Your Projects</h3></div><div class="toolbar-actions"><span class="notes-timestamp" id="projects-last-sync">Awaiting sync</span><button class="btn btn-primary" id="add-project-btn">+ Add Project</button></div></div>
-                <div class="summary-grid mission-summary project-summary-grid">
-                    <div class="summary-tile"><span class="summary-label">Overview Cards</span><strong id="overview-project-count">0</strong></div>
-                    <div class="summary-tile"><span class="summary-label">Running</span><strong id="projects-running-count">0</strong></div>
-                    <div class="summary-tile"><span class="summary-label">Stopped</span><strong id="projects-stopped-count">0</strong></div>
-                    <div class="summary-tile"><span class="summary-label">Dirty</span><strong id="projects-dirty-count">0</strong></div>
-                </div>
-                <div class="cards-grid project-layout">
-                    <article class="card"><div class="card-header"><div><span class="card-kicker">Mission shortlist</span><h3>Project Overview</h3></div></div><div class="card-body"><div class="activity-feed" id="project-overview-list"></div></div></article>
-                    <div class="projects-grid" id="projects-grid"></div>
-                </div>
-            </section>
-
-            <section class="tab-content" id="settings" aria-label="Settings tab">
-                <div class="cards-grid">
-                    <article class="card"><div class="card-header"><div><span class="card-kicker">Display</span><h3>Refresh</h3></div></div><div class="card-body"><div class="setting-item"><label for="refresh-interval">Refresh Interval</label><select id="refresh-interval"><option value="10">10 seconds</option><option value="30" selected>30 seconds</option><option value="60">1 minute</option><option value="300">5 minutes</option></select></div><div class="setting-item"><label for="auto-refresh"><span>Auto-refresh</span></label><input type="checkbox" id="auto-refresh" checked></div></div></article>
-                    <article class="card"><div class="card-header"><div><span class="card-kicker">Weather</span><h3>Location</h3></div></div><div class="card-body"><div class="setting-item stacked"><label for="weather-city">Weather City</label><input type="text" id="weather-city" value="Istanbul" placeholder="City name"></div></div></article>
-                    <article class="card"><div class="card-header"><div><span class="card-kicker">Profile</span><h3>Identity</h3></div></div><div class="card-body"><div class="setting-item stacked"><label for="user-name">Your Name</label><input type="text" id="user-name" value="Yigit" placeholder="Name"></div></div></article>
-                </div>
-            </section>
-        </main>
+                        <article class="card">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Profile</p>
+                                    <h3>Operator Name</h3>
+                                </div>
+                                <span class="badge badge-info">User</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="setting-item stacked">
+                                    <label for="user-name">Your Name</label>
+                                    <input type="text" id="user-name" value="Yigit" placeholder="Name" aria-label="Your name">
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+            </main>
+        </div>
     </div>
 
     <script type="module" src="app.js"></script>
