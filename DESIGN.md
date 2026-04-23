@@ -1,125 +1,104 @@
-# Yeet Dashboard - Mission Control Design Spec
+# Yeet Life Hub - Design Document
 
-## Direction
-A polished personal mission-control dashboard with NASA control-room cues, glass telemetry panels, and restrained neon accents. The interface should feel operational, dense, and calm rather than playful.
+## Overview
+A personal life management dashboard - evolved from mission control to daily life hub.
 
-## Core Principles
-- Dark first: deep-space surfaces with clear contrast and readable telemetry.
-- Mission hierarchy: strong framing for status, alerts, and systems before secondary content.
-- Dense but breathable: high information throughput with disciplined spacing and grouping.
-- Responsive control room: desktop gets a fixed navigation rail and fluid main deck; mobile collapses into stacked panels.
-- No broken wiring: existing vanilla JS features and service IDs stay intact unless updated in code as well.
+## Philosophy
+- **Life-first**: Not just dev tools, but everything in your life
+- **Unified**: One place for work, health, finance, learning
+- **Personal**: Tailored to Yigit's specific needs
+- **Beautiful**: Inspiring to use daily
 
-## Palette
-- Background: `#0a0e1a`
-- Elevated background: `#121829`
-- Panel glass: `rgba(18, 24, 41, 0.76)`
-- Border: `#1e2a45`
-- Border glow: `rgba(0, 212, 255, 0.26)`
-- Text primary: `#e0e6f1`
-- Text secondary: `#6b7b9c`
-- Text tertiary: `#90a4c3`
-- Accent cyan: `#00d4ff`
-- Accent green: `#00ff88`
-- Accent yellow: `#ffcc00`
-- Accent red: `#ff3366`
-- Accent purple: `#a855f7`
+## Core Modules
 
-## Typography
-- UI headings: `JetBrains Mono`, `SFMono-Regular`, monospace
-- Body: `Inter`, `Segoe UI`, system sans
-- Metrics, logs, gauges, terminal: `JetBrains Mono`, monospace
+### 1. Daily Command Center
+- Morning/evening routines
+- Daily focus/intentions
+- Mood tracker
+- Energy level
+- Weather + outfit suggestion
 
-## Layout
+### 2. Health & Wellness
+- Sleep tracking
+- Water intake
+- Exercise log
+- Meal planner
+- Meditation timer
+- Health metrics (weight, steps, etc)
 
-### Navigation Rail
-- Fixed left rail on desktop with brand block, grouped navigation, service sub-navigation, mission clock, and online indicator.
-- Primary tabs:
-  - Overview
-  - Daily
-  - System
-  - Services
-    - Cloudflare
-    - Dokploy
-  - Projects
-  - Logs
-- Secondary tabs:
-  - Terminal
-  - GitHub
-  - Deployments
-  - Settings
+### 3. Finance Hub
+- Monthly budget
+- Expense tracker
+- Investment portfolio
+- Savings goals
+- Bill reminders
+- Net worth graph
 
-### Header
-- Page title and contextual subtitle.
-- Mission time capsule.
-- Telemetry chips for refresh mode and weather city.
-- Quick-action bar for refresh and section routing.
+### 4. Learning & Growth
+- Books reading list
+- Courses in progress
+- Skills tracker
+- Daily learning streak
+- Notes & highlights
 
-### Content Deck
-- Modular glass-card grid with large feature cards and stacked operational cards.
-- Smooth tab transitions.
-- Skeleton states for loading panels.
-- Reusable panel treatment across all sections.
+### 5. Productivity
+- Task manager (improved todos)
+- Calendar integration
+- Time tracking
+- Focus sessions (Pomodoro)
+- Weekly review
 
-## Tabs And Widgets
+### 6. Life Admin
+- Document storage
+- Important dates (birthdays, renewals)
+- Travel planner
+- Shopping lists
+- Maintenance reminders
 
-### Overview
-- Gateway status with uptime and bind details.
-- Mission snapshot metrics for sessions, models, and projects.
-- Weather snapshot.
-- Recent alert feed.
-- Active sessions list.
-- Service health sweep.
-- Model constellation list.
-- Project activity summary.
-- Token utilization bars.
+### 7. Projects (Existing)
+- Dev projects (keep current)
+- Side projects
+- Ideas incubator
 
-### Daily
-- Daily briefing and quote.
-- Personal focus panel.
-- Detailed weather card.
-- Quick converter.
-- Bookmark shortcuts.
-- Quick notes.
-- Todo queue.
+### 8. Social & Relationships
+- Contact birthdays
+- Last contact tracker
+- Gift ideas
+- Event planning
 
-### System
-- Improved circular gauges for CPU, RAM, and disk.
-- Host and platform telemetry card.
-- Top processes table.
+### 9. Content & Media
+- Watch later (movies/shows)
+- Reading queue
+- Podcast subscriptions
+- Article bookmarks
 
-### Services
-- Services overview tab with routing cards into detail tabs.
-- Cloudflare tab with DNS summary metrics plus records grid.
-- Dokploy tab with fleet summary metrics plus project cards.
+## Design Principles
+- Warm, inviting (not cold/technical)
+- Card-based layout
+- Smooth animations
+- Dark/light mode
+- Mobile-first responsive
+- Quick actions (swipe, shortcuts)
+- Smart defaults
+- Gentle notifications (not alerts)
 
-### Projects
-- Project summary strip with running, stopped, and dirty repo counts.
-- Rich project cards with health, git state, runtime stats, and actions.
+## Color Palette (New)
+- Primary: Warm gradient (sunrise)
+- Success: Soft green (growth)
+- Warning: Gentle amber
+- Error: Soft red (not harsh)
+- Background: Cream/dark toggle
+- Accent: Personal brand colors
 
-### Logs
-- Search/filter input.
-- Pause and clear actions.
-- Monospace event stream with level styling.
+## Data Sources
+- Manual entry (most)
+- Google Calendar API
+- Fitbit/Apple Health (future)
+- Bank APIs (future)
+- GitHub (existing)
+- Weather API (existing)
 
-### Terminal
-- Full local terminal panel with command hints and neon command/output styling.
-
-## Motion And Finish
-- 200-300ms transitions.
-- Soft cyan glow on hover and active states.
-- Skeleton shimmer for loading blocks.
-- Pulse for online/status indicators.
-- Subtle grid and radar background treatments.
-
-## Accessibility
-- Semantic sections and buttons.
-- Accessible labels on controls and navigation.
-- Focus-visible treatment for keyboard navigation.
-- Clear contrast on all primary surfaces.
-
-## Implementation Notes
-- Vanilla HTML, CSS, and JS only.
-- Preserve service/proxy integrations.
-- Keep external dependencies at zero.
-- Keep IDs used by current services unless code updates them too.
+## Storage
+- localStorage for small data
+- IndexedDB for larger data
+- Optional cloud sync (future)
