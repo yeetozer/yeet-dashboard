@@ -1002,6 +1002,57 @@
                                 </div>
                             </div>
                         </article>
+
+                        <article class="card settings-api-card">
+                            <div class="card-header">
+                                <div>
+                                    <p class="eyebrow">Integrations</p>
+                                    <h3>API Key Settings</h3>
+                                </div>
+                                <span class="badge badge-warning" id="settings-connection-badge">Disconnected</span>
+                            </div>
+                            <div class="card-body">
+                                <form id="api-settings-form" class="settings-form">
+                                    <div class="setting-item stacked">
+                                        <label for="dokploy-url">Dokploy URL</label>
+                                        <input type="text" id="dokploy-url" placeholder="http://46.225.90.5:3000" aria-label="Dokploy URL">
+                                    </div>
+                                    <div class="setting-item stacked">
+                                        <label for="dokploy-api-key">Dokploy API Key</label>
+                                        <input type="password" id="dokploy-api-key" placeholder="Enter Dokploy API key" aria-label="Dokploy API key" autocomplete="off">
+                                    </div>
+                                    <div class="setting-item stacked">
+                                        <label for="cloudflare-token">Cloudflare Token</label>
+                                        <input type="password" id="cloudflare-token" placeholder="Enter Cloudflare token" aria-label="Cloudflare token" autocomplete="off">
+                                    </div>
+                                    <div class="setting-item stacked">
+                                        <label for="cloudflare-zone-id">Cloudflare Zone ID</label>
+                                        <input type="text" id="cloudflare-zone-id" placeholder="Enter Cloudflare zone ID" aria-label="Cloudflare zone ID" autocomplete="off">
+                                    </div>
+                                    <div class="settings-form-actions">
+                                        <button class="btn btn-primary" type="submit">Save</button>
+                                        <button class="btn btn-secondary" type="button" id="test-api-connection">Test Connection</button>
+                                    </div>
+                                </form>
+                                <div class="settings-connection-grid" aria-live="polite">
+                                    <div class="connection-indicator disconnected" id="dokploy-connection-status">
+                                        <span class="connection-dot" aria-hidden="true"></span>
+                                        <div>
+                                            <strong>Dokploy</strong>
+                                            <p id="dokploy-connection-text">Not connected</p>
+                                        </div>
+                                    </div>
+                                    <div class="connection-indicator disconnected" id="cloudflare-connection-status">
+                                        <span class="connection-dot" aria-hidden="true"></span>
+                                        <div>
+                                            <strong>Cloudflare</strong>
+                                            <p id="cloudflare-connection-text">Not connected</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="inline-alert" id="api-settings-feedback">Save your local API settings to enable proxy-backed service data.</div>
+                            </div>
+                        </article>
                     </div>
                 </section>
             </main>

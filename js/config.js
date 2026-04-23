@@ -10,7 +10,13 @@ export const YEET = {
     bookmarks: [],
     focus: '',
     weatherCity: 'Istanbul',
-    userName: 'Yigit'
+    userName: 'Yigit',
+    apiSettings: {
+      dokployUrl: '',
+      dokployApiKey: '',
+      cloudflareToken: '',
+      cloudflareZoneId: ''
+    }
   },
   state: {
     lastUpdate: null,

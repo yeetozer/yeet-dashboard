@@ -1278,6 +1278,7 @@ pre,
 
 textarea,
 input[type="text"],
+input[type="password"],
 input[type="number"],
 input[type="search"],
 select {
@@ -2082,6 +2083,92 @@ select:focus {
 .inline-alert.error {
   border-color: rgba(255, 51, 102, 0.22);
   color: #ffd0dc;
+}
+
+.inline-alert.success {
+  border-color: rgba(0, 255, 136, 0.22);
+  color: #d6ffe9;
+}
+
+.settings-api-card {
+  grid-column: 1 / -1;
+}
+
+.settings-form {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.settings-form-actions,
+.settings-connection-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.settings-form-actions {
+  margin-top: 1rem;
+}
+
+.settings-connection-grid {
+  margin: 1.1rem 0 0.85rem;
+}
+
+.connection-indicator {
+  flex: 1 1 14rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.95rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(107, 123, 156, 0.14);
+  background: rgba(10, 15, 28, 0.72);
+}
+
+.connection-indicator strong {
+  display: block;
+  margin-bottom: 0.12rem;
+}
+
+.connection-indicator p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+}
+
+.connection-dot {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  background: rgba(144, 164, 195, 0.4);
+  box-shadow: 0 0 0 6px rgba(144, 164, 195, 0.08);
+}
+
+.connection-indicator.connected {
+  border-color: rgba(0, 255, 136, 0.22);
+}
+
+.connection-indicator.connected .connection-dot {
+  background: var(--accent-green);
+  box-shadow: 0 0 0 6px rgba(0, 255, 136, 0.08);
+}
+
+.connection-indicator.pending {
+  border-color: rgba(255, 204, 0, 0.22);
+}
+
+.connection-indicator.pending .connection-dot {
+  background: var(--accent-yellow);
+  box-shadow: 0 0 0 6px rgba(255, 204, 0, 0.08);
+}
+
+.connection-indicator.disconnected {
+  border-color: rgba(255, 51, 102, 0.18);
+}
+
+.connection-indicator.disconnected .connection-dot {
+  background: var(--accent-red);
+  box-shadow: 0 0 0 6px rgba(255, 51, 102, 0.08);
 }
 
 .loading-shell {

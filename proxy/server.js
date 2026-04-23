@@ -1,15 +1,26 @@
 import express from 'express';
 import helmet from 'helmet';
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
+const configPath = path.join(__dirname, 'config.json');
 
 const app = express();
 const PORT = Number.parseInt(process.env.PORT || '8080', 10);
 const FETCH_TIMEOUT_MS = 10000;
+
+const defaultConfig = {
+  dokployUrl: process.env.DOKPLOY_URL || '',
+  dokployApiKey: process.env.DOKPLOY_API_KEY || '',
+  cloudflareToken: process.env.CLOUDFLARE_TOKEN || '',
+  cloudflareZoneId: process.env.CLOUDFLARE_ZONE_ID || ''
+};
+
+let runtimeConfig = { ...defaultConfig };
 
 app.disable('x-powered-by');
 app.use(helmet({
@@ -32,12 +43,52 @@ app.use(helmet({
 app.use(express.json({ limit: '50kb' }));
 
 function requireEnv(keys) {
-  const missing = keys.filter((key) => !process.env[key]);
+  const source = mapConfigToEnvLike();
+  const missing = keys.filter((key) => !source[key]);
   if (missing.length > 0) {
-    const error = new Error(`Missing required environment variables: ${missing.join(', ')}`);
+    const error = new Error(`Missing required settings: ${missing.join(', ')}`);
     error.status = 500;
     throw error;
   }
+}
+
+function mapConfigToEnvLike() {
+  return {
+    DOKPLOY_URL: runtimeConfig.dokployUrl,
+    DOKPLOY_API_KEY: runtimeConfig.dokployApiKey,
+    CLOUDFLARE_TOKEN: runtimeConfig.cloudflareToken,
+    CLOUDFLARE_ZONE_ID: runtimeConfig.cloudflareZoneId
+  };
+}
+
+function sanitizeConfig(config) {
+  return {
+    configured: {
+      dokploy: Boolean(config.dokployUrl && config.dokployApiKey),
+      cloudflare: Boolean(config.cloudflareToken && config.cloudflareZoneId)
+    },
+    dokployUrl: config.dokployUrl || '',
+    cloudflareZoneId: config.cloudflareZoneId || '',
+    hasDokployApiKey: Boolean(config.dokployApiKey),
+    hasCloudflareToken: Boolean(config.cloudflareToken)
+  };
+}
+
+async function loadConfigFromDisk() {
+  try {
+    const raw = await fs.readFile(configPath, 'utf8');
+    const parsed = JSON.parse(raw);
+    runtimeConfig = { ...defaultConfig, ...parsed };
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      console.error(`[proxy] Failed to load config.json: ${error.message}`);
+    }
+  }
+}
+
+async function saveConfigToDisk(config) {
+  runtimeConfig = { ...runtimeConfig, ...config };
+  await fs.writeFile(configPath, `${JSON.stringify(runtimeConfig, null, 2)}\n`, 'utf8');
 }
 
 async function fetchJson(url, options = {}) {
@@ -92,13 +143,33 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true });
 });
 
+app.get('/api/settings', (_req, res) => {
+  res.json(sanitizeConfig(runtimeConfig));
+});
+
+app.post('/api/settings', async (req, res, next) => {
+  try {
+    const nextConfig = {
+      dokployUrl: typeof req.body.dokployUrl === 'string' ? req.body.dokployUrl.trim() : runtimeConfig.dokployUrl,
+      dokployApiKey: typeof req.body.dokployApiKey === 'string' ? req.body.dokployApiKey.trim() : runtimeConfig.dokployApiKey,
+      cloudflareToken: typeof req.body.cloudflareToken === 'string' ? req.body.cloudflareToken.trim() : runtimeConfig.cloudflareToken,
+      cloudflareZoneId: typeof req.body.cloudflareZoneId === 'string' ? req.body.cloudflareZoneId.trim() : runtimeConfig.cloudflareZoneId
+    };
+
+    await saveConfigToDisk(nextConfig);
+    res.json({ ok: true, ...sanitizeConfig(runtimeConfig) });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get('/api/dokploy/projects', async (_req, res, next) => {
   try {
     requireEnv(['DOKPLOY_URL', 'DOKPLOY_API_KEY']);
-    const baseUrl = process.env.DOKPLOY_URL.replace(/\/$/, '');
+    const baseUrl = runtimeConfig.dokployUrl.replace(/\/$/, '');
     const data = await fetchJson(`${baseUrl}/api/project.all`, {
       headers: {
-        'x-api-key': process.env.DOKPLOY_API_KEY
+        'x-api-key': runtimeConfig.dokployApiKey
       }
     });
 
@@ -111,9 +182,9 @@ app.get('/api/dokploy/projects', async (_req, res, next) => {
 app.get('/api/cloudflare/dns', async (_req, res, next) => {
   try {
     requireEnv(['CLOUDFLARE_TOKEN', 'CLOUDFLARE_ZONE_ID']);
-    const data = await fetchJson(`https://api.cloudflare.com/client/v4/zones/${process.env.CLOUDFLARE_ZONE_ID}/dns_records?per_page=100`, {
+    const data = await fetchJson(`https://api.cloudflare.com/client/v4/zones/${runtimeConfig.cloudflareZoneId}/dns_records?per_page=100`, {
       headers: {
-        authorization: `Bearer ${process.env.CLOUDFLARE_TOKEN}`,
+        authorization: `Bearer ${runtimeConfig.cloudflareToken}`,
         'content-type': 'application/json'
       }
     });
@@ -135,7 +206,7 @@ app.get('/api/cloudflare/zones', async (_req, res, next) => {
     requireEnv(['CLOUDFLARE_TOKEN']);
     const data = await fetchJson('https://api.cloudflare.com/client/v4/zones', {
       headers: {
-        authorization: `Bearer ${process.env.CLOUDFLARE_TOKEN}`,
+        authorization: `Bearer ${runtimeConfig.cloudflareToken}`,
         'content-type': 'application/json'
       }
     });
@@ -178,6 +249,8 @@ app.use((err, _req, res, _next) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`[proxy] Yeet Dashboard proxy listening on http://localhost:${PORT}`);
+loadConfigFromDisk().finally(() => {
+  app.listen(PORT, () => {
+    console.log(`[proxy] Yeet Dashboard proxy listening on http://localhost:${PORT}`);
+  });
 });

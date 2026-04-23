@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initTabs();
   initJumpButtons();
   initSettings();
+  await loadProxySettingsStatus();
   await initProjects();
   initDaily();
   initLogs();
@@ -160,20 +161,39 @@ function initSettings() {
   const autoCheckbox = document.getElementById('auto-refresh');
   const weatherCityInput = document.getElementById('weather-city');
   const userNameInput = document.getElementById('user-name');
+  const dokployUrlInput = document.getElementById('dokploy-url');
+  const dokployApiKeyInput = document.getElementById('dokploy-api-key');
+  const cloudflareTokenInput = document.getElementById('cloudflare-token');
+  const cloudflareZoneIdInput = document.getElementById('cloudflare-zone-id');
+  const apiForm = document.getElementById('api-settings-form');
+  const testButton = document.getElementById('test-api-connection');
 
   const saved = localStorage.getItem('yeet-dashboard');
   if (saved) {
     const parsed = JSON.parse(saved);
-    YEET.config = { ...YEET.config, ...parsed };
+    YEET.config = {
+      ...YEET.config,
+      ...parsed,
+      apiSettings: {
+        ...YEET.config.apiSettings,
+        ...(parsed.apiSettings || {})
+      }
+    };
   }
 
   if (refreshSelect) refreshSelect.value = String(YEET.config.refreshInterval / 1000);
   if (autoCheckbox) autoCheckbox.checked = YEET.config.autoRefresh;
   if (weatherCityInput) weatherCityInput.value = YEET.config.weatherCity;
   if (userNameInput) userNameInput.value = YEET.config.userName;
+  if (dokployUrlInput) dokployUrlInput.value = YEET.config.apiSettings.dokployUrl || '';
+  if (dokployApiKeyInput) dokployApiKeyInput.value = YEET.config.apiSettings.dokployApiKey || '';
+  if (cloudflareTokenInput) cloudflareTokenInput.value = YEET.config.apiSettings.cloudflareToken || '';
+  if (cloudflareZoneIdInput) cloudflareZoneIdInput.value = YEET.config.apiSettings.cloudflareZoneId || '';
 
   syncConfigIndicators();
   updateGreeting(new Date());
+  updateConnectionStatus('dokploy', 'disconnected', 'Not connected');
+  updateConnectionStatus('cloudflare', 'disconnected', 'Not connected');
 
   refreshSelect?.addEventListener('change', () => {
     YEET.config.refreshInterval = parseInt(refreshSelect.value, 10) * 1000;
@@ -203,6 +223,33 @@ function initSettings() {
     updateGreeting(new Date());
   });
 
+  apiForm?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    YEET.config.apiSettings = {
+      dokployUrl: dokployUrlInput?.value.trim() || '',
+      dokployApiKey: dokployApiKeyInput?.value.trim() || '',
+      cloudflareToken: cloudflareTokenInput?.value.trim() || '',
+      cloudflareZoneId: cloudflareZoneIdInput?.value.trim() || ''
+    };
+
+    saveConfig();
+    await pushApiSettings();
+  });
+
+  testButton?.addEventListener('click', async () => {
+    YEET.config.apiSettings = {
+      dokployUrl: dokployUrlInput?.value.trim() || '',
+      dokployApiKey: dokployApiKeyInput?.value.trim() || '',
+      cloudflareToken: cloudflareTokenInput?.value.trim() || '',
+      cloudflareZoneId: cloudflareZoneIdInput?.value.trim() || ''
+    };
+
+    saveConfig();
+    await pushApiSettings({ silentSuccess: true });
+    await testApiConnections();
+  });
+
   document.getElementById('refresh-btn')?.addEventListener('click', async () => {
     cacheClear();
     await Promise.all([
@@ -225,11 +272,143 @@ function saveConfig() {
     autoRefresh: YEET.config.autoRefresh,
     weatherCity: YEET.config.weatherCity,
     userName: YEET.config.userName,
+    apiSettings: YEET.config.apiSettings,
     focus: YEET.config.focus,
     todos: YEET.config.todos,
     bookmarks: YEET.config.bookmarks,
     projects: YEET.config.projects
   }));
+}
+
+async function pushApiSettings(options = {}) {
+  const feedback = document.getElementById('api-settings-feedback');
+
+  try {
+    setSettingsFeedback('Saving API settings...', 'info');
+    const response = await fetch('/api/settings', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        accept: 'application/json'
+      },
+      body: JSON.stringify(YEET.config.apiSettings)
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to save API settings');
+    }
+
+    if (!options.silentSuccess) {
+      setSettingsFeedback('API settings saved to the local proxy config.', 'success');
+      showToast('API settings saved', 'success');
+    } else if (feedback) {
+      setSettingsFeedback('API settings synced. Ready to test connections.', 'info');
+    }
+
+    syncProxyConfigStatus(data);
+    return true;
+  } catch (error) {
+    setSettingsFeedback(`Failed to save settings: ${error.message}`, 'error');
+    showToast('Could not save API settings', 'error');
+    return false;
+  }
+}
+
+async function loadProxySettingsStatus() {
+  try {
+    const response = await fetch('/api/settings', {
+      headers: { accept: 'application/json' }
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || 'Failed to load proxy settings');
+    syncProxyConfigStatus(data);
+  } catch (error) {
+    addLog('warn', `Settings status unavailable: ${error.message}`);
+  }
+}
+
+async function testApiConnections() {
+  setSettingsFeedback('Testing Dokploy and Cloudflare connections...', 'info');
+  updateConnectionStatus('dokploy', 'pending', 'Testing connection...');
+  updateConnectionStatus('cloudflare', 'pending', 'Testing connection...');
+
+  const checks = await Promise.allSettled([
+    fetch('/api/dokploy/projects', { headers: { accept: 'application/json' } }),
+    fetch('/api/cloudflare/dns', { headers: { accept: 'application/json' } })
+  ]);
+
+  const [dokployResult, cloudflareResult] = checks;
+  const dokployOk = await handleConnectionResult(dokployResult, 'dokploy', 'Dokploy');
+  const cloudflareOk = await handleConnectionResult(cloudflareResult, 'cloudflare', 'Cloudflare');
+
+  const badge = document.getElementById('settings-connection-badge');
+  if (dokployOk && cloudflareOk) {
+    badge?.classList.remove('badge-warning');
+    badge?.classList.add('badge-success');
+    if (badge) badge.textContent = 'Connected';
+    setSettingsFeedback('Both services responded successfully.', 'success');
+    showToast('Connections look good', 'success');
+  } else {
+    badge?.classList.remove('badge-success');
+    badge?.classList.add('badge-warning');
+    if (badge) badge.textContent = 'Needs Attention';
+    setSettingsFeedback('One or more service checks failed. Review the connection indicators below.', 'error');
+    showToast('Connection test finished with errors', 'error');
+  }
+}
+
+async function handleConnectionResult(result, serviceKey, label) {
+  if (result.status !== 'fulfilled') {
+    updateConnectionStatus(serviceKey, 'disconnected', `${label} request failed`);
+    return false;
+  }
+
+  const response = result.value;
+  if (response.ok) {
+    updateConnectionStatus(serviceKey, 'connected', `${label} connected`);
+    return true;
+  }
+
+  const data = await response.json().catch(() => ({}));
+  updateConnectionStatus(serviceKey, 'disconnected', data.error || `${label} error (${response.status})`);
+  return false;
+}
+
+function syncProxyConfigStatus(data) {
+  const badge = document.getElementById('settings-connection-badge');
+  const configured = data?.configured || {};
+  const hasDokploy = Boolean(configured.dokploy);
+  const hasCloudflare = Boolean(configured.cloudflare);
+  const allConfigured = hasDokploy && hasCloudflare;
+  const anyConfigured = hasDokploy || hasCloudflare;
+
+  if (badge) {
+    badge.classList.remove('badge-success', 'badge-warning', 'badge-info');
+    badge.classList.add(allConfigured ? 'badge-info' : 'badge-warning');
+    badge.textContent = allConfigured ? 'Configured' : anyConfigured ? 'Partial' : 'Disconnected';
+  }
+}
+
+function updateConnectionStatus(service, state, message) {
+  const card = document.getElementById(`${service}-connection-status`);
+  const text = document.getElementById(`${service}-connection-text`);
+  if (!card || !text) return;
+
+  card.classList.remove('connected', 'disconnected', 'pending');
+  card.classList.add(state);
+  text.textContent = message;
+}
+
+function setSettingsFeedback(message, type = 'info') {
+  const feedback = document.getElementById('api-settings-feedback');
+  if (!feedback) return;
+
+  feedback.classList.remove('error', 'success');
+  if (type === 'error' || type === 'success') {
+    feedback.classList.add(type);
+  }
+  feedback.textContent = message;
 }
 
 function syncConfigIndicators() {
