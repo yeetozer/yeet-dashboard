@@ -11,6 +11,7 @@ export const YEET = {
     focus: '',
     weatherCity: 'Istanbul',
     userName: 'Yigit',
+    rememberApiKeys: false,
     apiSettings: {
       dokployUrl: '',
       dokployApiKey: '',
@@ -24,7 +25,9 @@ export const YEET = {
     isPaused: false,
     timerId: null,
     hostname: 'localhost',
-    platform: 'unknown'
+    platform: 'unknown',
+    apiSettingsMemory: null,
+    proxyConfigStatus: null
   }
 };
 

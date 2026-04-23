@@ -1,144 +1,125 @@
-# Yeet Dashboard - Design Document
+# Yeet Dashboard - Mission Control Design Spec
 
-## Overview
-A personal mission control dashboard for Yigit's development workflow. Dark NASA-inspired theme with modern widgets.
+## Direction
+A polished personal mission-control dashboard with NASA control-room cues, glass telemetry panels, and restrained neon accents. The interface should feel operational, dense, and calm rather than playful.
 
-## Design Principles
-- **Dark mode**: Space/night theme with neon accents
-- **High contrast**: Clear visual hierarchy
-- **Density**: Information-rich but organized
-- **Responsive**: Works on desktop and mobile
-- **Real-time**: Live data updates
+## Core Principles
+- Dark first: deep-space surfaces with clear contrast and readable telemetry.
+- Mission hierarchy: strong framing for status, alerts, and systems before secondary content.
+- Dense but breathable: high information throughput with disciplined spacing and grouping.
+- Responsive control room: desktop gets a fixed navigation rail and fluid main deck; mobile collapses into stacked panels.
+- No broken wiring: existing vanilla JS features and service IDs stay intact unless updated in code as well.
 
-## Color Palette
-- Background: `#0a0e1a` (deep space)
-- Card bg: `#121829` (dark blue-grey)
-- Border: `#1e2a45` (muted blue)
-- Text primary: `#e0e6f1` (off-white)
-- Text secondary: `#6b7b9c` (muted blue-grey)
-- Accent cyan: `#00d4ff` (neon cyan)
-- Accent green: `#00ff88` (neon green)
-- Accent yellow: `#ffcc00` (warm yellow)
-- Accent red: `#ff3366` (neon red)
-- Accent purple: `#a855f7` (soft purple)
+## Palette
+- Background: `#0a0e1a`
+- Elevated background: `#121829`
+- Panel glass: `rgba(18, 24, 41, 0.76)`
+- Border: `#1e2a45`
+- Border glow: `rgba(0, 212, 255, 0.26)`
+- Text primary: `#e0e6f1`
+- Text secondary: `#6b7b9c`
+- Text tertiary: `#90a4c3`
+- Accent cyan: `#00d4ff`
+- Accent green: `#00ff88`
+- Accent yellow: `#ffcc00`
+- Accent red: `#ff3366`
+- Accent purple: `#a855f7`
 
 ## Typography
-- Headings: JetBrains Mono / monospace
-- Body: Inter / system-ui
-- Monospace: JetBrains Mono (metrics, logs)
+- UI headings: `JetBrains Mono`, `SFMono-Regular`, monospace
+- Body: `Inter`, `Segoe UI`, system sans
+- Metrics, logs, gauges, terminal: `JetBrains Mono`, monospace
 
-## Layout Structure
+## Layout
+
+### Navigation Rail
+- Fixed left rail on desktop with brand block, grouped navigation, service sub-navigation, mission clock, and online indicator.
+- Primary tabs:
+  - Overview
+  - Daily
+  - System
+  - Services
+    - Cloudflare
+    - Dokploy
+  - Projects
+  - Logs
+- Secondary tabs:
+  - Terminal
+  - GitHub
+  - Deployments
+  - Settings
 
 ### Header
-- Clock widget (real-time)
-- System status indicators
-- Quick actions bar
+- Page title and contextual subtitle.
+- Mission time capsule.
+- Telemetry chips for refresh mode and weather city.
+- Quick-action bar for refresh and section routing.
 
-### Sidebar Navigation
-- Overview
-- Daily (weather, notes, todos)
-- System (metrics, terminal)
-- Services (Cloudflare, Dokploy)
-- Projects
-- Logs
-- Settings
+### Content Deck
+- Modular glass-card grid with large feature cards and stacked operational cards.
+- Smooth tab transitions.
+- Skeleton states for loading panels.
+- Reusable panel treatment across all sections.
 
-### Main Content Area
-- Cards grid layout
-- Expandable widgets
-- Modal overlays for details
+## Tabs And Widgets
 
-## Widgets
+### Overview
+- Gateway status with uptime and bind details.
+- Mission snapshot metrics for sessions, models, and projects.
+- Weather snapshot.
+- Recent alert feed.
+- Active sessions list.
+- Service health sweep.
+- Model constellation list.
+- Project activity summary.
+- Token utilization bars.
 
-### Overview Tab
-- Gateway status card
-- System resources (CPU/RAM/Disk gauges)
-- Active projects summary
-- Recent alerts/notifications
+### Daily
+- Daily briefing and quote.
+- Personal focus panel.
+- Detailed weather card.
+- Quick converter.
+- Bookmark shortcuts.
+- Quick notes.
+- Todo queue.
 
-### Daily Tab
-- Clock + date + greeting
-- Weather widget (Istanbul default)
-- Quick notes (localStorage)
-- Todo list with priorities
-- Daily focus quote
-- Unit converter
-- Bookmark shortcuts
+### System
+- Improved circular gauges for CPU, RAM, and disk.
+- Host and platform telemetry card.
+- Top processes table.
 
-### System Tab
-- CPU usage gauge (real-time)
-- RAM usage gauge
-- Disk usage gauge
-- Top processes table
-- Network status checker
-- Terminal widget (mini CLI)
+### Services
+- Services overview tab with routing cards into detail tabs.
+- Cloudflare tab with DNS summary metrics plus records grid.
+- Dokploy tab with fleet summary metrics plus project cards.
 
-### Services Tab
-**Cloudflare Sub-tab**
-- DNS records table
-- Zone status
-- Proxied indicators
+### Projects
+- Project summary strip with running, stopped, and dirty repo counts.
+- Rich project cards with health, git state, runtime stats, and actions.
 
-**Dokploy Sub-tab**
-- Project cards
-- App status
-- Database status
+### Logs
+- Search/filter input.
+- Pause and clear actions.
+- Monospace event stream with level styling.
 
-### Projects Tab
-- Project cards with tags
-- Git status indicators
-- Quick actions (open folder, GitHub)
-- Health status
+### Terminal
+- Full local terminal panel with command hints and neon command/output styling.
 
-### Logs Tab
-- System log viewer
-- Gateway logs
-- Filter/search
-- Auto-scroll
+## Motion And Finish
+- 200-300ms transitions.
+- Soft cyan glow on hover and active states.
+- Skeleton shimmer for loading blocks.
+- Pulse for online/status indicators.
+- Subtle grid and radar background treatments.
 
-## Animations
-- Smooth transitions (200-300ms)
-- Pulse animations for status indicators
-- Loading skeletons
-- Hover effects on cards
+## Accessibility
+- Semantic sections and buttons.
+- Accessible labels on controls and navigation.
+- Focus-visible treatment for keyboard navigation.
+- Clear contrast on all primary surfaces.
 
-## Icons
-- Emoji-based icons (no external dependencies)
-- Status dots with color coding
-
-## Interactions
-- Click to expand cards
-- Right-click for context menu
-- Drag to reorder (future)
-- Keyboard shortcuts (future)
-
-## Data Sources
-- OpenClaw workspace state (local JSON)
-- Dokploy API (via proxy)
-- Cloudflare API (via proxy)
-- wttr.in (weather)
-- System metrics (/proc, ps)
-
-## Security
-- All API calls go through backend proxy
-- No tokens exposed client-side
-- CSP headers enforced
-- Input sanitization
-
-## Future Features
-- Dark/light theme toggle
-- Draggable widgets
-- Custom CSS themes
-- Data export
-- Multi-user support
-- WebSocket real-time updates
-- Deployment pipeline visualization
-- GitHub activity feed
-- Docker container management
-
-## Tech Stack
-- Vanilla HTML/CSS/JS (no frameworks)
-- ES modules for organization
-- Express proxy backend
-- Environment variables for secrets
-- GitHub for version control
+## Implementation Notes
+- Vanilla HTML, CSS, and JS only.
+- Preserve service/proxy integrations.
+- Keep external dependencies at zero.
+- Keep IDs used by current services unless code updates them too.

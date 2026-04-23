@@ -19,6 +19,16 @@ import { loadCloudflareData } from './js/services/cloudflare.js';
 import { loadWeather } from './js/services/weather.js';
 import { initProjects, updateProjectMetrics } from './js/services/projects.js';
 
+const DASHBOARD_STORAGE_KEY = 'yeet-dashboard';
+const API_KEYS_STORAGE_KEY = 'yeet-api-keys-encoded';
+const API_WARNING_DISMISS_KEY = 'yeet-api-warning-dismissed';
+const API_SETTINGS_DEFAULTS = Object.freeze({
+  dokployUrl: '',
+  dokployApiKey: '',
+  cloudflareToken: '',
+  cloudflareZoneId: ''
+});
+
 document.addEventListener('DOMContentLoaded', async () => {
   YEET.state.currentTab = 'overview';
   YEET.state.logFilter = '';
@@ -156,44 +166,285 @@ function updatePageCopy(trigger, target) {
   setText('page-description', description);
 }
 
+function readDashboardConfig() {
+  try {
+    const saved = localStorage.getItem(DASHBOARD_STORAGE_KEY);
+    if (!saved) return {};
+
+    const parsed = JSON.parse(saved);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (error) {
+    addLog('warn', `Dashboard settings could not be loaded: ${error.message}`);
+    return {};
+  }
+}
+
+function getApiInputElements() {
+  return {
+    dokployUrl: document.getElementById('dokploy-url'),
+    dokployApiKey: document.getElementById('dokploy-api-key'),
+    cloudflareToken: document.getElementById('cloudflare-token'),
+    cloudflareZoneId: document.getElementById('cloudflare-zone-id')
+  };
+}
+
+function sanitizeApiSettings(value = {}) {
+  const source = value && typeof value === 'object' ? value : {};
+
+  return {
+    dokployUrl: typeof source.dokployUrl === 'string' ? source.dokployUrl.trim() : '',
+    dokployApiKey: typeof source.dokployApiKey === 'string' ? source.dokployApiKey.trim() : '',
+    cloudflareToken: typeof source.cloudflareToken === 'string' ? source.cloudflareToken.trim() : '',
+    cloudflareZoneId: typeof source.cloudflareZoneId === 'string' ? source.cloudflareZoneId.trim() : ''
+  };
+}
+
+function emptyApiSettings() {
+  return { ...API_SETTINGS_DEFAULTS };
+}
+
+function hasAnyApiSettings(settings) {
+  return Object.values(sanitizeApiSettings(settings)).some(Boolean);
+}
+
+function encodeApiSettings(settings) {
+  return window.btoa(JSON.stringify(sanitizeApiSettings(settings)));
+}
+
+function loadPersistedApiSettings() {
+  const encoded = localStorage.getItem(API_KEYS_STORAGE_KEY);
+  if (!encoded) return null;
+
+  try {
+    const decoded = window.atob(encoded);
+    const parsed = JSON.parse(decoded);
+    return sanitizeApiSettings(parsed);
+  } catch (error) {
+    localStorage.removeItem(API_KEYS_STORAGE_KEY);
+    addLog('warn', `Discarded invalid persisted API key storage: ${error.message}`);
+    return null;
+  }
+}
+
+function persistApiSettings(settings) {
+  const nextSettings = sanitizeApiSettings(settings);
+
+  try {
+    if (hasAnyApiSettings(nextSettings)) {
+      localStorage.setItem(API_KEYS_STORAGE_KEY, encodeApiSettings(nextSettings));
+    } else {
+      localStorage.removeItem(API_KEYS_STORAGE_KEY);
+    }
+  } catch (error) {
+    addLog('warn', `Could not persist API key storage: ${error.message}`);
+  }
+}
+
+function clearLegacyApiSettingsFromDashboardStorage() {
+  const saved = readDashboardConfig();
+  if (!Object.prototype.hasOwnProperty.call(saved, 'apiSettings')) return;
+
+  delete saved.apiSettings;
+  localStorage.setItem(DASHBOARD_STORAGE_KEY, JSON.stringify(saved));
+}
+
+function clearPersistedApiSettings() {
+  localStorage.removeItem(API_KEYS_STORAGE_KEY);
+  clearLegacyApiSettingsFromDashboardStorage();
+}
+
+function setApiSettingsMemory(settings) {
+  const nextSettings = sanitizeApiSettings(settings);
+  YEET.state.apiSettingsMemory = { ...nextSettings };
+  YEET.config.apiSettings = { ...nextSettings };
+  return nextSettings;
+}
+
+function getApiSettingsFromMemory() {
+  return sanitizeApiSettings(YEET.state.apiSettingsMemory);
+}
+
+function syncApiSettingsStorage(settings, rememberApiKeys) {
+  const nextSettings = setApiSettingsMemory(settings);
+  if (rememberApiKeys) persistApiSettings(nextSettings);
+  else clearPersistedApiSettings();
+  return nextSettings;
+}
+
+function getInitialApiSettings(rememberApiKeys) {
+  const inMemory = getApiSettingsFromMemory();
+  if (hasAnyApiSettings(inMemory)) return inMemory;
+
+  if (!rememberApiKeys) return emptyApiSettings();
+
+  return loadPersistedApiSettings() || emptyApiSettings();
+}
+
+function readApiSettingsFromInputs(inputs = getApiInputElements()) {
+  return sanitizeApiSettings({
+    dokployUrl: inputs.dokployUrl?.value,
+    dokployApiKey: inputs.dokployApiKey?.value,
+    cloudflareToken: inputs.cloudflareToken?.value,
+    cloudflareZoneId: inputs.cloudflareZoneId?.value
+  });
+}
+
+function populateApiInputs(inputs, settings) {
+  const nextSettings = sanitizeApiSettings(settings);
+
+  Object.entries(inputs).forEach(([key, input]) => {
+    if (input) input.value = nextSettings[key] || '';
+  });
+}
+
+function initVisibilityToggles() {
+  document.querySelectorAll('[data-visibility-target]').forEach((button) => {
+    const target = document.getElementById(button.dataset.visibilityTarget);
+    if (!target) return;
+
+    const baseLabel = target.getAttribute('aria-label') || 'value';
+    button.textContent = target.type === 'password' ? 'Show' : 'Hide';
+    button.setAttribute('aria-pressed', String(target.type !== 'password'));
+    button.setAttribute('aria-label', `${target.type === 'password' ? 'Show' : 'Hide'} ${baseLabel}`);
+
+    button.addEventListener('click', () => {
+      const isHidden = target.type === 'password';
+      target.type = isHidden ? 'text' : 'password';
+      button.textContent = isHidden ? 'Hide' : 'Show';
+      button.setAttribute('aria-pressed', String(isHidden));
+      button.setAttribute('aria-label', `${isHidden ? 'Hide' : 'Show'} ${baseLabel}`);
+    });
+  });
+}
+
+function initApiWarningBanner() {
+  const banner = document.getElementById('api-key-warning-banner');
+  const dismissButton = document.getElementById('dismiss-api-warning');
+  if (!banner || !dismissButton) return;
+
+  if (sessionStorage.getItem(API_WARNING_DISMISS_KEY) === '1') {
+    banner.hidden = true;
+  }
+
+  dismissButton.addEventListener('click', () => {
+    banner.hidden = true;
+    sessionStorage.setItem(API_WARNING_DISMISS_KEY, '1');
+  });
+}
+
+function syncApiServiceStatus(inputs = getApiInputElements()) {
+  const apiSettings = readApiSettingsFromInputs(inputs);
+  const configured = YEET.state.proxyConfigStatus?.configured || {};
+
+  const dokployReady = Boolean(apiSettings.dokployUrl && apiSettings.dokployApiKey);
+  const dokployPartial = Boolean(apiSettings.dokployUrl || apiSettings.dokployApiKey);
+  if (configured.dokploy) {
+    updateConnectionStatus('dokploy', 'configured', 'Credentials saved to proxy. Ready to test.');
+  } else if (dokployReady) {
+    updateConnectionStatus('dokploy', 'configured', 'Credentials entered locally. Save to sync proxy.');
+  } else if (dokployPartial) {
+    updateConnectionStatus('dokploy', 'pending', 'Enter both the URL and API key.');
+  } else {
+    updateConnectionStatus('dokploy', 'disconnected', 'No credentials saved');
+  }
+
+  const cloudflareReady = Boolean(apiSettings.cloudflareToken && apiSettings.cloudflareZoneId);
+  const cloudflarePartial = Boolean(apiSettings.cloudflareToken || apiSettings.cloudflareZoneId);
+  if (configured.cloudflare) {
+    updateConnectionStatus('cloudflare', 'configured', 'Credentials saved to proxy. Ready to test.');
+  } else if (cloudflareReady) {
+    updateConnectionStatus('cloudflare', 'configured', 'Credentials entered locally. Save to sync proxy.');
+  } else if (cloudflarePartial) {
+    updateConnectionStatus('cloudflare', 'pending', 'Enter both the token and zone ID.');
+  } else {
+    updateConnectionStatus('cloudflare', 'disconnected', 'No credentials saved');
+  }
+}
+
+async function clearAllApiKeys(options = {}) {
+  const inputs = options.inputs || getApiInputElements();
+  const rememberInput = options.rememberInput || document.getElementById('remember-api-keys');
+  const clearedSettings = emptyApiSettings();
+
+  populateApiInputs(inputs, clearedSettings);
+  if (rememberInput) rememberInput.checked = false;
+  YEET.config.rememberApiKeys = false;
+  syncApiSettingsStorage(clearedSettings, false);
+  saveConfig();
+  updateConnectionStatus('dokploy', 'pending', 'Clearing saved credentials...');
+  updateConnectionStatus('cloudflare', 'pending', 'Clearing saved credentials...');
+
+  try {
+    setSettingsFeedback('Clearing browser and proxy API settings...', 'info');
+    const response = await fetch('/api/settings/clear', {
+      method: 'POST',
+      headers: {
+        accept: 'application/json'
+      }
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to clear API settings');
+    }
+
+    syncProxyConfigStatus(data);
+    cacheClear();
+    await Promise.all([
+      loadDokployData(),
+      loadCloudflareData()
+    ]);
+    setSettingsFeedback('All API keys cleared from browser memory and proxy config.', 'success');
+    showToast('All API keys cleared', 'success');
+  } catch (error) {
+    syncApiServiceStatus(inputs);
+    setSettingsFeedback(`Failed to clear API keys: ${error.message}`, 'error');
+    showToast('Could not clear API keys', 'error');
+  }
+}
+
 function initSettings() {
   const refreshSelect = document.getElementById('refresh-interval');
   const autoCheckbox = document.getElementById('auto-refresh');
   const weatherCityInput = document.getElementById('weather-city');
   const userNameInput = document.getElementById('user-name');
-  const dokployUrlInput = document.getElementById('dokploy-url');
-  const dokployApiKeyInput = document.getElementById('dokploy-api-key');
-  const cloudflareTokenInput = document.getElementById('cloudflare-token');
-  const cloudflareZoneIdInput = document.getElementById('cloudflare-zone-id');
+  const apiInputs = getApiInputElements();
   const apiForm = document.getElementById('api-settings-form');
   const testButton = document.getElementById('test-api-connection');
+  const rememberApiKeysInput = document.getElementById('remember-api-keys');
+  const clearApiKeysButton = document.getElementById('clear-api-keys');
 
-  const saved = localStorage.getItem('yeet-dashboard');
-  if (saved) {
-    const parsed = JSON.parse(saved);
-    YEET.config = {
-      ...YEET.config,
-      ...parsed,
-      apiSettings: {
-        ...YEET.config.apiSettings,
-        ...(parsed.apiSettings || {})
-      }
-    };
+  const savedConfig = readDashboardConfig();
+  const rememberApiKeys = Boolean(savedConfig.rememberApiKeys);
+  delete savedConfig.apiSettings;
+  delete savedConfig.rememberApiKeys;
+  YEET.config = {
+    ...YEET.config,
+    ...savedConfig,
+    rememberApiKeys,
+    apiSettings: emptyApiSettings()
+  };
+
+  clearLegacyApiSettingsFromDashboardStorage();
+  if (!YEET.config.rememberApiKeys) {
+    clearPersistedApiSettings();
   }
+
+  const initialApiSettings = getInitialApiSettings(YEET.config.rememberApiKeys);
+  setApiSettingsMemory(initialApiSettings);
 
   if (refreshSelect) refreshSelect.value = String(YEET.config.refreshInterval / 1000);
   if (autoCheckbox) autoCheckbox.checked = YEET.config.autoRefresh;
   if (weatherCityInput) weatherCityInput.value = YEET.config.weatherCity;
   if (userNameInput) userNameInput.value = YEET.config.userName;
-  if (dokployUrlInput) dokployUrlInput.value = YEET.config.apiSettings.dokployUrl || '';
-  if (dokployApiKeyInput) dokployApiKeyInput.value = YEET.config.apiSettings.dokployApiKey || '';
-  if (cloudflareTokenInput) cloudflareTokenInput.value = YEET.config.apiSettings.cloudflareToken || '';
-  if (cloudflareZoneIdInput) cloudflareZoneIdInput.value = YEET.config.apiSettings.cloudflareZoneId || '';
+  if (rememberApiKeysInput) rememberApiKeysInput.checked = YEET.config.rememberApiKeys;
+  populateApiInputs(apiInputs, initialApiSettings);
 
+  initApiWarningBanner();
+  initVisibilityToggles();
   syncConfigIndicators();
   updateGreeting(new Date());
-  updateConnectionStatus('dokploy', 'disconnected', 'Not connected');
-  updateConnectionStatus('cloudflare', 'disconnected', 'Not connected');
+  syncApiServiceStatus(apiInputs);
 
   refreshSelect?.addEventListener('change', () => {
     YEET.config.refreshInterval = parseInt(refreshSelect.value, 10) * 1000;
@@ -223,31 +474,51 @@ function initSettings() {
     updateGreeting(new Date());
   });
 
+  Object.values(apiInputs).forEach((input) => {
+    input?.addEventListener('input', () => {
+      syncApiSettingsStorage(readApiSettingsFromInputs(apiInputs), YEET.config.rememberApiKeys);
+      syncApiServiceStatus(apiInputs);
+    });
+  });
+
+  rememberApiKeysInput?.addEventListener('change', () => {
+    YEET.config.rememberApiKeys = rememberApiKeysInput.checked;
+    syncApiSettingsStorage(readApiSettingsFromInputs(apiInputs), YEET.config.rememberApiKeys);
+    saveConfig();
+    setSettingsFeedback(
+      YEET.config.rememberApiKeys
+        ? 'API keys will be remembered in this browser using base64 obfuscation.'
+        : 'API keys now stay in memory only until this tab closes.',
+      'info'
+    );
+  });
+
   apiForm?.addEventListener('submit', async (event) => {
     event.preventDefault();
 
-    YEET.config.apiSettings = {
-      dokployUrl: dokployUrlInput?.value.trim() || '',
-      dokployApiKey: dokployApiKeyInput?.value.trim() || '',
-      cloudflareToken: cloudflareTokenInput?.value.trim() || '',
-      cloudflareZoneId: cloudflareZoneIdInput?.value.trim() || ''
-    };
-
+    syncApiSettingsStorage(readApiSettingsFromInputs(apiInputs), YEET.config.rememberApiKeys);
     saveConfig();
     await pushApiSettings();
   });
 
   testButton?.addEventListener('click', async () => {
-    YEET.config.apiSettings = {
-      dokployUrl: dokployUrlInput?.value.trim() || '',
-      dokployApiKey: dokployApiKeyInput?.value.trim() || '',
-      cloudflareToken: cloudflareTokenInput?.value.trim() || '',
-      cloudflareZoneId: cloudflareZoneIdInput?.value.trim() || ''
-    };
-
+    const nextApiSettings = syncApiSettingsStorage(readApiSettingsFromInputs(apiInputs), YEET.config.rememberApiKeys);
     saveConfig();
-    await pushApiSettings({ silentSuccess: true });
+    if (hasAnyApiSettings(nextApiSettings)) {
+      const savedSettings = await pushApiSettings({ silentSuccess: true });
+      if (!savedSettings) return;
+    } else {
+      setSettingsFeedback('Testing the credentials currently configured in the proxy...', 'info');
+    }
+
     await testApiConnections();
+  });
+
+  clearApiKeysButton?.addEventListener('click', async () => {
+    await clearAllApiKeys({
+      inputs: apiInputs,
+      rememberInput: rememberApiKeysInput
+    });
   });
 
   document.getElementById('refresh-btn')?.addEventListener('click', async () => {
@@ -267,12 +538,12 @@ function initSettings() {
 }
 
 function saveConfig() {
-  localStorage.setItem('yeet-dashboard', JSON.stringify({
+  localStorage.setItem(DASHBOARD_STORAGE_KEY, JSON.stringify({
     refreshInterval: YEET.config.refreshInterval,
     autoRefresh: YEET.config.autoRefresh,
     weatherCity: YEET.config.weatherCity,
     userName: YEET.config.userName,
-    apiSettings: YEET.config.apiSettings,
+    rememberApiKeys: YEET.config.rememberApiKeys,
     focus: YEET.config.focus,
     todos: YEET.config.todos,
     bookmarks: YEET.config.bookmarks,
@@ -282,6 +553,9 @@ function saveConfig() {
 
 async function pushApiSettings(options = {}) {
   const feedback = document.getElementById('api-settings-feedback');
+  const browserStorageMessage = YEET.config.rememberApiKeys
+    ? 'remembered in this browser'
+    : 'kept in memory for this tab';
 
   try {
     setSettingsFeedback('Saving API settings...', 'info');
@@ -300,7 +574,7 @@ async function pushApiSettings(options = {}) {
     }
 
     if (!options.silentSuccess) {
-      setSettingsFeedback('API settings saved to the local proxy config.', 'success');
+      setSettingsFeedback(`API settings saved to the local proxy config and ${browserStorageMessage}.`, 'success');
       showToast('API settings saved', 'success');
     } else if (feedback) {
       setSettingsFeedback('API settings synced. Ready to test connections.', 'info');
@@ -344,13 +618,13 @@ async function testApiConnections() {
 
   const badge = document.getElementById('settings-connection-badge');
   if (dokployOk && cloudflareOk) {
-    badge?.classList.remove('badge-warning');
+    badge?.classList.remove('badge-warning', 'badge-info');
     badge?.classList.add('badge-success');
     if (badge) badge.textContent = 'Connected';
     setSettingsFeedback('Both services responded successfully.', 'success');
     showToast('Connections look good', 'success');
   } else {
-    badge?.classList.remove('badge-success');
+    badge?.classList.remove('badge-success', 'badge-info');
     badge?.classList.add('badge-warning');
     if (badge) badge.textContent = 'Needs Attention';
     setSettingsFeedback('One or more service checks failed. Review the connection indicators below.', 'error');
@@ -377,6 +651,7 @@ async function handleConnectionResult(result, serviceKey, label) {
 
 function syncProxyConfigStatus(data) {
   const badge = document.getElementById('settings-connection-badge');
+  YEET.state.proxyConfigStatus = data || null;
   const configured = data?.configured || {};
   const hasDokploy = Boolean(configured.dokploy);
   const hasCloudflare = Boolean(configured.cloudflare);
@@ -388,15 +663,27 @@ function syncProxyConfigStatus(data) {
     badge.classList.add(allConfigured ? 'badge-info' : 'badge-warning');
     badge.textContent = allConfigured ? 'Configured' : anyConfigured ? 'Partial' : 'Disconnected';
   }
+
+  syncApiServiceStatus();
 }
 
 function updateConnectionStatus(service, state, message) {
   const card = document.getElementById(`${service}-connection-status`);
+  const stateLabel = document.getElementById(`${service}-connection-state`);
   const text = document.getElementById(`${service}-connection-text`);
   if (!card || !text) return;
 
-  card.classList.remove('connected', 'disconnected', 'pending');
+  card.classList.remove('connected', 'configured', 'disconnected', 'pending');
   card.classList.add(state);
+  if (stateLabel) {
+    const labels = {
+      connected: 'Connected',
+      configured: 'Configured',
+      pending: 'Pending',
+      disconnected: 'Disconnected'
+    };
+    stateLabel.textContent = labels[state] || 'Disconnected';
+  }
   text.textContent = message;
 }
 

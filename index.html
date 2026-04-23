@@ -1012,18 +1012,44 @@
                                 <span class="badge badge-warning" id="settings-connection-badge">Disconnected</span>
                             </div>
                             <div class="card-body">
+                                <div class="api-security-banner" id="api-key-warning-banner" role="alert">
+                                    <div class="api-security-copy">
+                                        <strong>⚠️ API keys are stored in browser storage. Use only on trusted devices.</strong>
+                                        <details class="api-security-details">
+                                            <summary>Learn more</summary>
+                                            <p>Leave “Remember keys across sessions” unchecked to keep credentials in memory only until this tab closes. Turning it on stores an obfuscated copy in this browser's local storage for convenience, not strong security.</p>
+                                        </details>
+                                    </div>
+                                    <button class="api-security-dismiss" type="button" id="dismiss-api-warning">Dismiss</button>
+                                </div>
                                 <form id="api-settings-form" class="settings-form">
+                                    <div class="settings-memory-row">
+                                        <label class="remember-keys-toggle" for="remember-api-keys">
+                                            <input type="checkbox" id="remember-api-keys" aria-describedby="remember-api-keys-hint">
+                                            <span>
+                                                <strong>Remember keys across sessions</strong>
+                                                <small id="remember-api-keys-hint">Unchecked keeps credentials in memory only until this tab closes.</small>
+                                            </span>
+                                        </label>
+                                        <button class="btn btn-danger clear-keys-btn" type="button" id="clear-api-keys">Clear All Keys</button>
+                                    </div>
                                     <div class="setting-item stacked">
                                         <label for="dokploy-url">Dokploy URL</label>
                                         <input type="text" id="dokploy-url" placeholder="http://46.225.90.5:3000" aria-label="Dokploy URL">
                                     </div>
                                     <div class="setting-item stacked">
                                         <label for="dokploy-api-key">Dokploy API Key</label>
-                                        <input type="password" id="dokploy-api-key" placeholder="Enter Dokploy API key" aria-label="Dokploy API key" autocomplete="off">
+                                        <div class="input-with-action">
+                                            <input type="password" id="dokploy-api-key" placeholder="Enter Dokploy API key" aria-label="Dokploy API key" autocomplete="off">
+                                            <button class="input-visibility-toggle" type="button" data-visibility-target="dokploy-api-key" aria-controls="dokploy-api-key" aria-pressed="false">Show</button>
+                                        </div>
                                     </div>
                                     <div class="setting-item stacked">
                                         <label for="cloudflare-token">Cloudflare Token</label>
-                                        <input type="password" id="cloudflare-token" placeholder="Enter Cloudflare token" aria-label="Cloudflare token" autocomplete="off">
+                                        <div class="input-with-action">
+                                            <input type="password" id="cloudflare-token" placeholder="Enter Cloudflare token" aria-label="Cloudflare token" autocomplete="off">
+                                            <button class="input-visibility-toggle" type="button" data-visibility-target="cloudflare-token" aria-controls="cloudflare-token" aria-pressed="false">Show</button>
+                                        </div>
                                     </div>
                                     <div class="setting-item stacked">
                                         <label for="cloudflare-zone-id">Cloudflare Zone ID</label>
@@ -1038,19 +1064,25 @@
                                     <div class="connection-indicator disconnected" id="dokploy-connection-status">
                                         <span class="connection-dot" aria-hidden="true"></span>
                                         <div>
-                                            <strong>Dokploy</strong>
-                                            <p id="dokploy-connection-text">Not connected</p>
+                                            <div class="connection-indicator-head">
+                                                <strong>Dokploy</strong>
+                                                <span class="connection-state-pill" id="dokploy-connection-state">Disconnected</span>
+                                            </div>
+                                            <p id="dokploy-connection-text">No credentials saved</p>
                                         </div>
                                     </div>
                                     <div class="connection-indicator disconnected" id="cloudflare-connection-status">
                                         <span class="connection-dot" aria-hidden="true"></span>
                                         <div>
-                                            <strong>Cloudflare</strong>
-                                            <p id="cloudflare-connection-text">Not connected</p>
+                                            <div class="connection-indicator-head">
+                                                <strong>Cloudflare</strong>
+                                                <span class="connection-state-pill" id="cloudflare-connection-state">Disconnected</span>
+                                            </div>
+                                            <p id="cloudflare-connection-text">No credentials saved</p>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="inline-alert" id="api-settings-feedback">Save your local API settings to enable proxy-backed service data.</div>
+                                <div class="inline-alert" id="api-settings-feedback">API keys stay in memory unless you enable remember for this browser.</div>
                             </div>
                         </article>
                     </div>

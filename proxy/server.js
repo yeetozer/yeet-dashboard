@@ -12,6 +12,7 @@ const configPath = path.join(__dirname, 'config.json');
 const app = express();
 const PORT = Number.parseInt(process.env.PORT || '8080', 10);
 const FETCH_TIMEOUT_MS = 10000;
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || `yeet-admin-${Math.random().toString(36).slice(2)}`;
 
 const defaultConfig = {
   dokployUrl: process.env.DOKPLOY_URL || '',
@@ -74,14 +75,43 @@ function sanitizeConfig(config) {
   };
 }
 
+function requireAuth(req, res, next) {
+  const token = req.headers['x-admin-token'];
+  if (token !== ADMIN_TOKEN) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  return next();
+}
+
+function sanitizeErrorForLog(error, fallback = 'Unexpected error') {
+  if (!error || typeof error !== 'object') return fallback;
+  if (typeof error.status === 'number' && error.status < 500 && error.message) {
+    return error.message;
+  }
+  if (error.name === 'AbortError') return 'Upstream request timed out';
+  return fallback;
+}
+
+async function ensureConfigPermissions() {
+  try {
+    await fs.chmod(configPath, 0o600);
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      throw error;
+    }
+  }
+}
+
 async function loadConfigFromDisk() {
   try {
+    await ensureConfigPermissions();
     const raw = await fs.readFile(configPath, 'utf8');
     const parsed = JSON.parse(raw);
     runtimeConfig = { ...defaultConfig, ...parsed };
   } catch (error) {
     if (error.code !== 'ENOENT') {
-      console.error(`[proxy] Failed to load config.json: ${error.message}`);
+      console.error('[proxy] Failed to load config.json');
     }
   }
 }
@@ -89,6 +119,19 @@ async function loadConfigFromDisk() {
 async function saveConfigToDisk(config) {
   runtimeConfig = { ...runtimeConfig, ...config };
   await fs.writeFile(configPath, `${JSON.stringify(runtimeConfig, null, 2)}\n`, 'utf8');
+  await ensureConfigPermissions();
+}
+
+async function clearConfigFromDisk() {
+  runtimeConfig = { ...defaultConfig };
+
+  try {
+    await fs.unlink(configPath);
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      throw error;
+    }
+  }
 }
 
 async function fetchJson(url, options = {}) {
@@ -143,11 +186,11 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true });
 });
 
-app.get('/api/settings', (_req, res) => {
+app.get('/api/settings', requireAuth, (_req, res) => {
   res.json(sanitizeConfig(runtimeConfig));
 });
 
-app.post('/api/settings', async (req, res, next) => {
+app.post('/api/settings', requireAuth, async (req, res, next) => {
   try {
     const nextConfig = {
       dokployUrl: typeof req.body.dokployUrl === 'string' ? req.body.dokployUrl.trim() : runtimeConfig.dokployUrl,
@@ -157,6 +200,15 @@ app.post('/api/settings', async (req, res, next) => {
     };
 
     await saveConfigToDisk(nextConfig);
+    res.json({ ok: true, ...sanitizeConfig(runtimeConfig) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/api/settings/clear', requireAuth, async (_req, res, next) => {
+  try {
+    await clearConfigFromDisk();
     res.json({ ok: true, ...sanitizeConfig(runtimeConfig) });
   } catch (error) {
     next(error);
@@ -241,7 +293,7 @@ app.use((err, _req, res, _next) => {
   const message = status >= 500 ? 'Internal server error' : err.message;
 
   if (status >= 500) {
-    console.error(`[proxy] ${err.message}`);
+    console.error(`[proxy] ${sanitizeErrorForLog(err, 'Internal server error')}`);
   }
 
   res.status(status).json({
@@ -252,5 +304,8 @@ app.use((err, _req, res, _next) => {
 loadConfigFromDisk().finally(() => {
   app.listen(PORT, () => {
     console.log(`[proxy] Yeet Dashboard proxy listening on http://localhost:${PORT}`);
+    if (!process.env.ADMIN_TOKEN) {
+      console.log('[proxy] ADMIN_TOKEN not set; generated ephemeral admin token for this process');
+    }
   });
 });

@@ -345,6 +345,7 @@ function saveConfig() {
     autoRefresh: YEET.config.autoRefresh,
     weatherCity: YEET.config.weatherCity,
     userName: YEET.config.userName,
+    rememberApiKeys: YEET.config.rememberApiKeys,
     focus: YEET.config.focus,
     todos: YEET.config.todos,
     bookmarks: YEET.config.bookmarks,
