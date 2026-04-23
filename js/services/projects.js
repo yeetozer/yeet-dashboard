@@ -1,9 +1,9 @@
 /* ===== PROJECTS SERVICE ===== */
 
-import { YEET } from '../config.js';
-import { escapeHtml, showToast, createModal, addLog } from '../utils/helpers.js';
+import { YEET, API_BASE } from '../config.js';
+import { escapeHtml, showToast, createModal, addLog, cacheGet, cacheSet } from '../utils/helpers.js';
 
-export function initProjects() {
+export async function initProjects() {
   const saved = localStorage.getItem('yeet-projects');
   if (saved) {
     YEET.config.projects = JSON.parse(saved);
@@ -23,8 +23,88 @@ export function initProjects() {
     saveConfig();
   }
 
+  // Fetch real Dokploy data
+  await syncDokployStatus();
+  
   renderProjects();
   document.getElementById('add-project-btn')?.addEventListener('click', showAddProjectModal);
+}
+
+async function syncDokployStatus() {
+  try {
+    const cacheKey = 'dk_real_status';
+    const cached = cacheGet(cacheKey);
+    if (cached) {
+      applyDokployStatus(cached);
+      return;
+    }
+
+    const res = await fetch(API_BASE.dokployProjects, {
+      headers: { accept: 'application/json' }
+    });
+    
+    if (!res.ok) throw new Error(`Dokploy API error: ${res.status}`);
+    
+    const dokployProjects = await res.json();
+    cacheSet(cacheKey, dokployProjects, 60000); // Cache for 1 minute
+    applyDokployStatus(dokployProjects);
+    addLog('info', `Synced ${dokployProjects.length} projects from Dokploy`);
+  } catch (err) {
+    addLog('warn', `Dokploy sync failed: ${err.message}`);
+    // Keep existing local status
+  }
+}
+
+function applyDokployStatus(dokployProjects) {
+  // Map Dokploy projects to local projects
+  const projectMap = {
+    'Yeets-Map': ['Yigit Map System'],
+    'Fadeolog': ['Fadeolog System'],
+    'yigitsolutions': ['Yigit Solutions'],
+    'BoulderJungle-System': ['BoulderJungle-System'],
+    'Garmentic-Website': ['Garmentic-Website'],
+    'zonanatura': ['zonanatura']
+  };
+
+  dokployProjects.forEach((dpProject) => {
+    const env = dpProject.environments?.[0] || {};
+    const apps = env.applications || [];
+    const appStatus = apps.length > 0 ? 'running' : 'stopped';
+    
+    // Check if any app is actually building/deploying
+    const isBuilding = apps.some((app) => app.buildStatus === 'running');
+    const hasFailed = apps.some((app) => app.buildStatus === 'failed' || app.status === 'error');
+    
+    let finalStatus = appStatus;
+    if (isBuilding) finalStatus = 'building';
+    if (hasFailed) finalStatus = 'error';
+    
+    // Find matching local projects
+    const localNames = projectMap[dpProject.name] || [];
+    localNames.forEach((localName) => {
+      const localProject = YEET.config.projects.find((p) => p.name === localName);
+      if (localProject) {
+        localProject.status = finalStatus;
+        localProject.dokployStatus = finalStatus;
+        localProject.dokployProject = dpProject.name;
+        localProject.apps = apps.length;
+        
+        // Get metrics from first app if available
+        if (apps.length > 0 && apps[0].cpuLimit) {
+          localProject.cpu = Math.round((apps[0].cpuUsage || 0) / apps[0].cpuLimit * 100);
+          localProject.mem = Math.round((apps[0].memoryUsage || 0) / apps[0].memoryLimit * 100);
+        }
+        
+        // Get port from app
+        if (apps.length > 0 && apps[0].ports?.length > 0) {
+          localProject.port = apps[0].ports[0].publishedPort || apps[0].ports[0].port;
+        }
+      }
+    });
+  });
+  
+  // Save updated status
+  localStorage.setItem('yeet-projects', JSON.stringify(YEET.config.projects));
 }
 
 export function renderProjects() {
@@ -69,6 +149,14 @@ export function renderProjects() {
       }
     }
 
+    const dokployStatus = project.dokployStatus || project.status;
+    const statusClass = dokployStatus === 'running' ? 'running' : 
+                       dokployStatus === 'building' ? 'building' :
+                       dokployStatus === 'error' ? 'error' : 'stopped';
+    const statusText = dokployStatus === 'running' ? 'Running' :
+                       dokployStatus === 'building' ? 'Building' :
+                       dokployStatus === 'error' ? 'Error' : 'Stopped';
+
     return `
       <article class="project-card ${isSystem ? 'system-card' : ''}" data-id="${project.id}">
         <div class="project-card-top">
@@ -78,7 +166,7 @@ export function renderProjects() {
             <p>${escapeHtml(project.description || '')}</p>
           </div>
           <div class="project-health">
-            <span class="project-health-pill ${isRunning ? 'running' : 'stopped'}">${isRunning ? 'Running' : 'Stopped'}</span>
+            <span class="project-health-pill ${statusClass}">${statusText}</span>
             <span class="project-health-pill git-${gitStatus}">${gitIcon} ${gitStatus}</span>
           </div>
         </div>
